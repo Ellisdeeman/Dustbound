@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<title>DUSTBOUND: Mutant Tamers of the Ash</title>
+<!-- PWA -->
+<meta name="description" content="DUSTBOUND: Mutant Tamers of the Ash - a Game Boy-style post-apocalyptic monster-taming RPG.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#191812">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dustbound">
+<meta name="application-name" content="Dustbound">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<style>
+html,body{margin:0;height:100%;background:#191812;color:#c9c1a1;font-family:monospace;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+#gb{background:linear-gradient(160deg,#cfc7a6,#b3ab8a);border-radius:14px 14px 48px 14px;padding:16px 28px 18px;box-shadow:0 10px 30px #000a,inset -4px -6px 0 #0002;box-sizing:border-box;max-width:100vw}
+#bezel{background:#4b4a3c;border-radius:10px 10px 30px 10px;padding:14px 14px 8px;position:relative;display:flex;flex-direction:column;align-items:center}
+#screen{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#e6dfb6;box-shadow:inset 0 0 0 2px #23251a}
+.brand{font:bold 10px monospace;color:#bdb592;letter-spacing:2px;margin-top:6px;font-style:italic}
+.led{position:absolute;left:5px;top:44%;width:6px;height:6px;border-radius:50%;background:#c74;box-shadow:0 0 6px #f85}
+#logo{font:italic bold 18px monospace;color:#3d3c66;margin:8px 0 4px 4px;letter-spacing:1px}
+#pad{display:flex;justify-content:space-between;align-items:center;margin-top:6px;position:relative;height:150px}
+#dpad{position:relative;width:96px;height:96px}
+#dpad button{position:absolute;width:32px;height:32px;background:#2b2a24;border:none;color:#777;font-size:12px;padding:0}
+#dpad .u{left:32px;top:0;border-radius:4px 4px 0 0}#dpad .d{left:32px;top:64px;border-radius:0 0 4px 4px}#dpad .l{left:0;top:32px;border-radius:4px 0 0 4px}#dpad .r{left:64px;top:32px;border-radius:0 4px 4px 0}
+#dpad .c{position:absolute;left:32px;top:32px;width:32px;height:32px;background:#2b2a24}
+#ab{display:flex;gap:14px;transform:rotate(-25deg);margin-right:4px}
+#ab button{width:46px;height:46px;border-radius:50%;background:#8c2f4b;border:none;color:#e9d6c4;font:bold 15px monospace;box-shadow:0 3px 0 #0006}
+#ss{position:absolute;left:50%;bottom:4px;transform:translateX(-50%);display:flex;gap:18px}
+#ss div{display:flex;flex-direction:column;align-items:center;font:bold 9px monospace;color:#3d3c66;letter-spacing:1px}
+#ss button{width:44px;height:12px;border-radius:6px;background:#77756a;border:none;transform:rotate(-25deg);margin-bottom:5px}
+button.on,#dpad button:active,#ab button:active{filter:brightness(1.5)}
+#help{font-size:11px;color:#8a8470;margin-top:10px;text-align:center;padding:0 8px}
+</style>
+<style id="pwa-layout">
+/* PWA / mobile layout additions (layout & touch behaviour only) */
+*{-webkit-tap-highlight-color:transparent}
+html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#gb,#gb *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#gb button,#pad,#dpad,#ab,#ss,#screen{touch-action:none}
+#gb button{-webkit-appearance:none;appearance:none;outline:none}
+/* Portrait phones: scale the screen to the available width/height (overrides fit()'s integer scale) */
+@media (orientation:portrait) and (max-width:600px){
+ :root{--sw:min(480px,calc(100vw - 64px - env(safe-area-inset-left) - env(safe-area-inset-right)),calc((100vh - 290px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 10 / 9))}
+ @supports (height:100dvh){:root{--sw:min(480px,calc(100vw - 64px - env(safe-area-inset-left) - env(safe-area-inset-right)),calc((100dvh - 290px - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 10 / 9))}}
+ #screen{width:var(--sw)!important;height:calc(var(--sw) * 9 / 10)!important}
+ #gb{width:calc(var(--sw) + 56px)!important}
+ #help{display:none}
+}
+</style></head><body>
+<div id="gb">
+ <div id="bezel"><div class="led"></div><canvas id="screen" width="160" height="144"></canvas><div class="brand">SCRAP-MATRIX DISPLAY</div></div>
+ <div id="logo">DUSTBOUND</div>
+ <div id="pad">
+  <div id="dpad"><button class="u" data-k="up">&#9650;</button><button class="l" data-k="left">&#9664;</button><div class="c"></div><button class="r" data-k="right">&#9654;</button><button class="d" data-k="down">&#9660;</button></div>
+  <div id="ab"><button data-k="b">B</button><button data-k="a">A</button></div>
+  <div id="ss"><div><button data-k="start"></button>START</div></div>
+ </div>
+</div>
+<div id="help">Arrows/WASD: move &middot; Z/Enter/Space: A &middot; X/Backspace/Esc: B &middot; Shift: Menu &middot; M: mute</div>
+<script>
+'use strict';
+// ===== CORE: canvas, palette, pixel buffers, font, input, audio =====
+const W=160,H=144,TS=16;
+const PAL=['#e6dfb6','#aca46c','#5c6142','#23251a'];
+const PALRGB=PAL.map(h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)));
+const cv=document.getElementById('screen');const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
+let FC=0;
+const rand=n=>Math.floor(Math.random()*n);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const pick=a=>a[rand(a.length)];
+function hash(x,y,s){let h=Math.imul(x|0,374761393)^Math.imul(y|0,668265263)^Math.imul((s|0)+7,982451653);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296}
+
+// --- pixel buffers (0=transparent, 1..4 = palette light..dark)
+function mkBuf(w,h){return{w,h,d:new Uint8Array(w*h)}}
+function px(b,x,y,c){x=Math.floor(x);y=Math.floor(y);if(x>=0&&y>=0&&x<b.w&&y<b.h)b.d[y*b.w+x]=c}
+function gp(b,x,y){return(x>=0&&y>=0&&x<b.w&&y<b.h)?b.d[y*b.w+x]:0}
+function rect(b,x,y,w,h,c){for(let j=0;j<h;j++)for(let i=0;i<w;i++)px(b,x+i,y+j,c)}
+function ell(b,cx,cy,rx,ry,c){for(let y=Math.floor(cy-ry-1);y<=cy+ry+1;y++)for(let x=Math.floor(cx-rx-1);x<=cx+rx+1;x++){const dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;if(dx*dx+dy*dy<=1)px(b,x,y,c)}}
+function line(b,x0,y0,x1,y1,c,t){t=t||1;const n=Math.ceil(Math.max(Math.abs(x1-x0),Math.abs(y1-y0)))||1;for(let i=0;i<=n;i++){const x=x0+(x1-x0)*i/n,y=y0+(y1-y0)*i/n;if(t<=1)px(b,Math.round(x),Math.round(y),c);else ell(b,x+.5,y+.5,t/2,t/2,c)}}
+function poly(b,pts,c){let a=1e9,bb=1e9,cc=-1e9,dd=-1e9;for(const[x,y]of pts){a=Math.min(a,x);bb=Math.min(bb,y);cc=Math.max(cc,x);dd=Math.max(dd,y)}
+ for(let y=Math.floor(bb);y<=dd;y++)for(let x=Math.floor(a);x<=cc;x++){const X=x+.5,Y=y+.5;let ins=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const[xi,yi]=pts[i],[xj,yj]=pts[j];if(((yi>Y)!=(yj>Y))&&(X<(xj-xi)*(Y-yi)/(yj-yi)+xi))ins=!ins}if(ins)px(b,x,y,c)}}
+function stamp(b,x,y,rows){rows.forEach((r,j)=>{for(let i=0;i<r.length;i++){const ch=r[i];if(ch!=='.')px(b,x+i,y+j,+ch)}})}
+function blit(d,s,dx,dy){for(let y=0;y<s.h;y++)for(let x=0;x<s.w;x++){const v=s.d[y*s.w+x];if(v)px(d,dx+x,dy+y,v)}}
+function outline(b,c){c=c||4;const o=b.d.slice();const n=(x,y)=>x>=0&&y>=0&&x<b.w&&y<b.h&&o[y*b.w+x]&&o[y*b.w+x]!==c;
+ for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){if(o[y*b.w+x])continue;if(n(x-1,y)||n(x+1,y)||n(x,y-1)||n(x,y+1))b.d[y*b.w+x]=c}}
+function autoShade(b){const o=b.d.slice();const g=(x,y)=>(x<0||y<0||x>=b.w||y>=b.h)?0:o[y*b.w+x];
+ for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){if(o[y*b.w+x]!==2)continue;if(!g(x,y+2)||!g(x+2,y+1))b.d[y*b.w+x]=3;else if(!g(x-1,y-2)&&!g(x,y-2))b.d[y*b.w+x]=1}}
+function toCanvas(b,flip){const c=document.createElement('canvas');c.width=b.w;c.height=b.h;const g=c.getContext('2d');const id=g.createImageData(b.w,b.h);
+ for(let y=0;y<b.h;y++)for(let x=0;x<b.w;x++){const v=b.d[y*b.w+(flip?b.w-1-x:x)];if(!v)continue;const p=PALRGB[v-1],i=(y*b.w+x)*4;id.data[i]=p[0];id.data[i+1]=p[1];id.data[i+2]=p[2];id.data[i+3]=255}
+ g.putImageData(id,0,0);return c}
+
+// --- bitmap font 5x7 (column-major, bit0=top), cell 6x8
+const FCH=" !\"#$%&'()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZ[]_abcdefghijklmnopqrstuvwxyz\x01\x02\x03";
+const FDAT=("0000000000 00005f0000 0007000700 147f147f14 242a7f2a12 2313086462 3649562050 0000070000 001c224100 0041221c00 2a1c7f1c2a 08083e0808 0050300000 0808080808 0060600000 2010080402 "+
+"3e5149453e 00427f4000 4261514946 2141454b31 1814127f10 2745454539 3c4a494930 0171090503 3649494936 064949291e 0036360000 0056360000 0814224100 1414141414 0041221408 0201510906 "+
+"7c1211127c 7f49494936 3e41414122 7f4141221c 7f49494941 7f09090901 3e4149497a 7f0808087f 00417f4100 2040413f01 7f08142241 7f40404040 7f020c027f 7f0408107f 3e4141413e 7f09090906 3e4151215e 7f09192946 4649494931 01017f0101 3f4040403f 1f2040201f 3f4038403f 6314081463 0708700807 6151494543 "+
+"007f414100 0041417f00 4040404040 "+
+"2054545478 7f48444438 3844444420 384444487f 3854545418 087e090102 18a4a4a47c 7f08040478 00447d4000 2040443d00 7f10284400 00417f4000 7c04180478 7c08040478 3844444438 fc24242418 18242424fc 7c08040408 4854545420 043f444020 3c4040207c 1c2040201c 3c4030403c 4428102844 1ca0a0a07c 4464544c44 "+
+"7f3e1c0800 040c1c0c04 0c1e3c1e0c").split(' ');
+const FONT={},FIDX={};
+function buildFont(){for(let i=0;i<FCH.length;i++)FIDX[FCH[i]]=i;
+ for(let c=1;c<=4;c++){const cn=document.createElement('canvas');cn.width=FCH.length*6;cn.height=8;const g=cn.getContext('2d');g.fillStyle=PAL[c-1];
+  for(let i=0;i<FCH.length;i++){const hx=FDAT[i];for(let col=0;col<5;col++){const v=parseInt(hx.substr(col*2,2),16);for(let r=0;r<8;r++)if(v>>r&1)g.fillRect(i*6+col,r,1,1)}}FONT[c]=cn}}
+function text(s,x,y,c,sc){c=c||4;sc=sc||1;s=String(s);for(let i=0;i<s.length;i++){let k=FIDX[s[i]];if(k===undefined)k=FIDX['?'];if(s[i]===' ')continue;ctx.drawImage(FONT[c],k*6,0,6,8,Math.round(x+i*6*sc),Math.round(y),6*sc,8*sc)}}
+function textC(s,cx,y,c,sc){sc=sc||1;text(s,cx-String(s).length*3*sc,y,c,sc)}
+function fill(c,x,y,w,h){ctx.fillStyle=PAL[c-1];ctx.fillRect(x,y,w,h)}
+function box(x,y,w,h){fill(1,x,y,w,h);fill(4,x,y,w,1);fill(4,x,y+h-1,w,1);fill(4,x,y,1,h);fill(4,x+w-1,y,1,h);
+ fill(4,x+2,y+2,w-4,1);fill(4,x+2,y+h-3,w-4,1);fill(4,x+2,y+2,1,h-4);fill(4,x+w-3,y+2,1,h-4);fill(1,x+2,y+2,1,1);fill(1,x+w-3,y+2,1,1);fill(1,x+2,y+h-3,1,1);fill(1,x+w-3,y+h-3,1,1)}
+
+// --- input
+const held={},prs={};
+const KM={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right',KeyZ:'a',Enter:'a',Space:'a',KeyX:'b',Backspace:'b',Escape:'b',ShiftLeft:'start',ShiftRight:'start'};
+const DIRK=['up','down','left','right'];
+let textHook=null;
+addEventListener('keydown',e=>{initAudio();
+ if(textHook&&textHook(e)){e.preventDefault();return}
+ if(e.code==='KeyM'){muted=!muted;e.preventDefault();return}
+ const k=KM[e.code];if(!k)return;e.preventDefault();
+ if(!e.repeat||DIRK.includes(k))prs[k]=true;held[k]=true;if(e.code==='Enter'&&!e.repeat)prs.enter=true});
+addEventListener('keyup',e=>{const k=KM[e.code];if(k)held[k]=false});
+addEventListener('blur',()=>{for(const k in held)held[k]=false});
+function bindTouch(){document.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k;
+ const dn=e=>{e.preventDefault();initAudio();held[k]=true;prs[k]=true;if(k==='start')prs.enter=false;el.classList.add('on')};
+ const up=e=>{e.preventDefault();held[k]=false;el.classList.remove('on')};
+ el.addEventListener('pointerdown',dn);el.addEventListener('pointerup',up);el.addEventListener('pointerleave',up);el.addEventListener('pointercancel',up)})}
+
+// --- audio
+let AC=null,muted=false,master=null;
+function initAudio(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=0.13;master.connect(AC.destination);nextT=AC.currentTime+.05}catch(e){AC=null}}
+function tone(f,d,type,v,t0,slide){if(!AC||muted||!f)return;const t=AC.currentTime+(t0||0);const o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.linearRampToValueAtTime(Math.max(20,f+slide),t+d);
+ g.gain.setValueAtTime(v||.3,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(master);o.start(t);o.stop(t+d+.03)}
+function noise(d,v,t0){if(!AC||muted)return;const t=AC.currentTime+(t0||0);const n=Math.floor(AC.sampleRate*d);const buf=AC.createBuffer(1,n,AC.sampleRate);const a=buf.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;
+ const s=AC.createBufferSource();s.buffer=buf;const g=AC.createGain();g.gain.setValueAtTime(v||.4,t);g.gain.exponentialRampToValueAtTime(.001,t+d);s.connect(g);g.connect(master);s.start(t)}
+const SFX={sel:()=>tone(1046,.04,'square',.2),ok:()=>{tone(784,.05,'square',.25);tone(1175,.08,'square',.25,.05)},no:()=>tone(150,.12,'square',.3),bump:()=>tone(80,.07,'square',.3),
+ hit:()=>{noise(.15,.5);tone(200,.12,'square',.25,0,-120)},big:()=>{noise(.3,.6);tone(120,.25,'sawtooth',.3,0,-80)},
+ enc:()=>{[523,659,784,1046,784,1046].forEach((f,i)=>tone(f,.07,'square',.25,i*.06))},lvl:()=>{[523,659,784,1046].forEach((f,i)=>tone(f,.12,'square',.25,i*.1))},
+ heal:()=>{[659,784,988,1318,988,1318].forEach((f,i)=>tone(f,.1,'triangle',.4,i*.09))},door:()=>{tone(300,.06);tone(200,.08,'square',.2,.06)},
+ shake:()=>tone(330,.06,'square',.2),catch:()=>{[784,988,1175,1568].forEach((f,i)=>tone(f,.1,'square',.25,i*.08))},faint:()=>tone(400,.5,'square',.25,0,-350),
+ dice:()=>noise(.03,.3),pass:()=>{tone(880,.08);tone(1318,.15,'square',.25,.08)},fail:()=>{tone(220,.1);tone(165,.2,'square',.25,.1)},item:()=>{[784,1046,1318].forEach((f,i)=>tone(f,.08,'square',.22,i*.07))}};
+// --- tiny chiptune sequencer
+const NOTE={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function nf(s){const m=/^([A-G])(#?)(\d)$/.exec(s);if(!m)return 0;return 440*Math.pow(2,(12*(+m[3]+1)+NOTE[m[1]]+(m[2]?1:0)-69)/12)}
+const SONGS={
+ title:{bpm:84,tr:[{w:'square',v:.07,n:'E4 . G4 . A4 . . G4 E4 . D4 . E4 . . . C4 . D4 . E4 . G4 . D4 . . . . . . .'},{w:'triangle',v:.25,n:'A2 . . . A2 . . . F2 . . . F2 . . . C3 . . . C3 . . . G2 . . . G2 . E2 .'}]},
+ town:{bpm:100,tr:[{w:'square',v:.06,n:'C5 . A4 . G4 . E4 . G4 . A4 . C5 . . . D5 . C5 . A4 . G4 . A4 . . . . . . . E4 . G4 . A4 . C5 . A4 . G4 . E4 . D4 . E4 . C4 . . . . . . .'},{w:'triangle',v:.22,n:'F2 . C3 . F2 . C3 . A2 . E3 . A2 . E3 . D2 . A2 . D2 . A2 . G2 . D3 . G2 . D3 .'}]},
+ wild:{bpm:112,tr:[{w:'square',v:.05,n:'A4 . . C5 B4 . A4 . E4 . . . G4 . A4 . . . . . E4 . D4 . E4 . . . . . . . A4 . . C5 D5 . E5 . D5 . C5 . B4 . G4 . A4 . . . . . . . . . . . . . . .'},{w:'triangle',v:.22,n:'A2 . A2 E2 A2 . A2 E2 G2 . G2 D2 G2 . G2 D2 F2 . F2 C2 F2 . F2 C2 E2 . E2 B1 E2 . G2 .'}]},
+ fort:{bpm:96,tr:[{w:'square',v:.05,n:'D4 . D4 F4 . D4 G4 . F4 . E4 . D4 . . . C4 . D4 . F4 . E4 . D4 . . . . . . .'},{w:'triangle',v:.25,n:'D2 D2 . D2 D2 . C2 . D2 D2 . D2 F2 . E2 . A1 A1 . A1 C2 . C2 . D2 . . . D2 . . .'}]},
+ battle:{bpm:150,tr:[{w:'square',v:.06,n:'A4 A4 C5 A4 D5 . C5 . A4 A4 C5 A4 E5 . D5 . F5 E5 D5 C5 D5 C5 B4 G4 A4 . . . E5 . . .'},{w:'triangle',v:.25,n:'A2 A3 A2 A3 A2 A3 A2 A3 F2 F3 F2 F3 G2 G3 G2 G3 D2 D3 D2 D3 E2 E3 E2 E3 A2 A3 A2 A3 E2 E3 E2 E3'}]},
+ boss:{bpm:160,tr:[{w:'square',v:.06,n:'D5 . D5 C5 D5 . F5 . E5 . D5 . C5 . A4 . D5 . D5 C5 D5 . G5 . F5 E5 D5 C5 D5 . . .'},{w:'sawtooth',v:.08,n:'D2 D2 D3 D2 D2 D3 D2 D2 C2 C2 C3 C2 A1 A1 A2 C2 D2 D2 D3 D2 D2 D3 D2 D2 G1 G1 G2 A1 A1 A2 A1 A1'}]},
+ victory:{bpm:130,tr:[{w:'square',v:.07,n:'G4 C5 E5 G5 . E5 G5 . . . A5 . G5 . E5 . C5 . D5 . E5 . . . . . . . . . . .'},{w:'triangle',v:.25,n:'C3 . G2 . C3 . G2 . F2 . C3 . F2 . C3 . G2 . D3 . G2 . D3 . C3 . . . . . . .'}]}
+};
+for(const k in SONGS)for(const t of SONGS[k].tr)t.n=t.n.split(' ');
+let song=null,songStep=0,nextT=0;
+function playSong(n){const s=SONGS[n]||null;if(song===s)return;song=s;songStep=0;if(AC)nextT=AC.currentTime+.05}
+setInterval(()=>{if(!AC||!song)return;if(nextT<AC.currentTime)nextT=AC.currentTime+.05;const dt=60/song.bpm/2;
+ while(nextT<AC.currentTime+.3){if(!muted)for(const t of song.tr){const n=t.n[songStep%t.n.length];if(n!=='.')tone(nf(n),dt*.9,t.w,t.v,nextT-AC.currentTime)}songStep++;nextT+=dt}},60);
+
+// ===== GRAPHICS: tiles, people, creatures, objects (all procedural) =====
+function ground(b){rect(b,0,0,16,16,1);[[3,2],[11,5],[6,11],[13,13],[1,8]].forEach(([x,y],i)=>{px(b,x,y,2);if(i%2)px(b,x+1,y,2)})}
+function onGround(fn){return b=>{ground(b);const s=mkBuf(16,16);fn(s);outline(s);blit(b,s,0,0)}}
+function wallBase(b){rect(b,0,0,16,16,2);for(let x=1;x<16;x+=3)rect(b,x,0,1,16,3);rect(b,0,0,16,1,3);rect(b,0,15,16,1,4)}
+const TILEFN={
+ '.':b=>ground(b),
+ ',':b=>{ground(b);stamp(b,3,4,['.33','3443','.33']);stamp(b,10,10,['33.','3.3']);line(b,9,2,13,6,3)},
+ 'v':(b,f)=>{rect(b,0,0,16,16,2);const tuft=['1...1','3.1.3','43334','.444.'];const o=f?1:0;[[1,1],[9,0],[5,8],[12,9]].forEach(([x,y],i)=>stamp(b,x+((i%2)?o:-o)*0,y,tuft));px(b,8,6,3);px(b,2,12,3)},
+ ':':b=>{rect(b,0,0,16,16,1);for(let y=0;y<16;y++)for(let x=0;x<16;x++)if((x+y)%2===0&&hash(x,y,9)<.55)px(b,x,y,2);[[4,4],[11,11],[12,3]].forEach(([x,y])=>{px(b,x,y,3);px(b,x+1,y,3)})},
+ '=':b=>{rect(b,0,0,16,16,2);for(let i=0;i<10;i++)px(b,hash(i,1,3)*16,hash(i,2,3)*16,3);line(b,2,3,6,7,3);line(b,6,7,6,10,3);px(b,12,12,1);px(b,4,13,1)},
+ '~':(b,f)=>{rect(b,0,0,16,16,3);for(let x=0;x<16;x++){const y=Math.round(Math.sin((x+f*4)/16*Math.PI*2)*1.5);px(b,x,4+y,2);px(b,x,11-y,4)}if(f){px(b,4,8,1);px(b,11,2,1)}else{px(b,9,8,1);px(b,3,14,1)}},
+ '#':b=>{rect(b,0,0,16,16,4);for(let r=0;r<4;r++){const off=r%2?4:0;for(let x=-8;x<16;x+=8){const bx=x+off,by=r*4;rect(b,bx+1,by,6,3,2+(hash(bx,by,4)<.3?1:0));px(b,bx+1,by,1)}}px(b,6,9,4);px(b,7,9,4)},
+ 'T':b=>{ground(b);const s=mkBuf(16,16);line(s,8,15,8,6,3,2);line(s,8,8,3,3,3);line(s,8,6,12,1,3);line(s,9,10,13,7,3);line(s,5,5,4,1,3);outline(s);blit(b,s,0,0)},
+ 'F':b=>{ground(b);const s=mkBuf(16,16);for(let i=0;i<4;i++){const x=i*4,top=3+Math.round(hash(i,0,5)*3);rect(s,x,top,3,15-top,i%2?2:3);px(s,x+1,top+2,4);px(s,x+1,12,4)}rect(s,0,8,16,2,3);outline(s);blit(b,s,0,0)},
+ 'H':b=>wallBase(b),
+ 'W':b=>{wallBase(b);rect(b,3,4,10,8,4);rect(b,4,5,8,6,1);rect(b,8,5,1,6,3);rect(b,4,8,8,1,3)},
+ 'R':b=>{rect(b,0,0,16,16,3);for(let y=0;y<16;y++)for(let x=0;x<16;x++)if((x+y*2)%6===0)px(b,x,y,4);rect(b,0,0,16,1,2);rect(b,0,14,16,2,4);px(b,5,6,1);px(b,11,9,2)},
+ 'D':b=>{wallBase(b);rect(b,3,2,10,14,4);rect(b,4,3,8,13,3);rect(b,4,9,8,1,4);px(b,10,8,1)},
+ 'd':b=>{wallBase(b);rect(b,3,2,10,14,4);rect(b,4,3,8,13,2);line(b,4,3,11,15,3);line(b,11,3,4,15,3);px(b,10,8,4)},
+ 'B':onGround(s=>{rect(s,4,3,8,12,3);ell(s,8,3.5,4,1.6,2);rect(s,4,6,8,1,4);rect(s,4,11,8,1,4);rect(s,5,7,1,4,2);stamp(s,7,8,['.1.','111'])}),
+ 'S':onGround(s=>{rect(s,7,9,2,6,3);rect(s,2,2,12,8,2);rect(s,4,4,8,1,3);rect(s,4,6,6,1,3)}),
+ '_':b=>{rect(b,0,0,16,16,1);for(let y=3;y<16;y+=4)rect(b,0,y,16,1,2);px(b,5,1,2);px(b,12,5,2);px(b,2,9,2);px(b,9,13,2)},
+ 'K':b=>{rect(b,0,0,16,16,3);rect(b,0,0,16,5,1);rect(b,0,5,16,1,4);rect(b,0,15,16,1,4);for(let x=3;x<16;x+=5)rect(b,x,7,1,7,4);px(b,6,2,2);px(b,13,1,2)},
+ 'O':b=>{TILEFN['_'](b);const s=mkBuf(16,16);ell(s,8,8,7,5,2);rect(s,6,5,3,3,1);rect(s,7,13,2,3,3);outline(s);blit(b,s,0,0)},
+ 'h':b=>{TILEFN['_'](b);const s=mkBuf(16,16);ell(s,8,9,4,3,3);ell(s,8,8,3,2,2);outline(s);blit(b,s,0,0)},
+ 'P':b=>{rect(b,0,0,16,16,3);rect(b,0,9,16,2,2);rect(b,0,11,16,1,4);[[1,4],[5,5],[9,3],[13,5]].forEach(([x,y],i)=>{rect(b,x,y,2,9-y,i%2?1:2);px(b,x,y-1,4)});rect(b,0,15,16,1,4)},
+ 'E':b=>{TILEFN['_'](b);rect(b,1,4,14,10,4);rect(b,2,5,12,8,3);for(let x=3;x<14;x+=2)rect(b,x,6,1,6,2)},
+ '^':b=>{const s=mkBuf(16,16);rect(s,0,5,16,11,3);for(let x=0;x<16;x+=4){poly(s,[[x,6],[x+2,0],[x+4,6]],2);rect(s,x,5,1,11,4)}px(s,2,9,1);px(s,10,12,1);ground(b);outline(s);blit(b,s,0,0);rect(b,0,15,16,1,4)},
+ 'G':b=>{ground(b);const s=mkBuf(16,16);rect(s,0,4,16,2,3);rect(s,0,11,16,2,3);for(let x=1;x<16;x+=4){rect(s,x,1,2,15,2);px(s,x,1,1)}outline(s);blit(b,s,0,0)},
+ 'g':b=>{TILEFN['M'](b);rect(b,0,0,2,16,3);rect(b,14,0,2,16,3)},
+ 'w':b=>{TILEFN['M'](b);const s=mkBuf(16,16);poly(s,[[0,16],[0,4],[3,9],[2,16]],3);poly(s,[[16,16],[16,2],[12,8],[14,16]],3);outline(s);blit(b,s,0,0)},
+ 'M':b=>{rect(b,0,0,16,16,2);rect(b,0,0,16,1,3);rect(b,0,0,1,16,3);px(b,2,2,1);px(b,13,2,1);px(b,2,13,1);px(b,13,13,1);for(let i=0;i<6;i++)px(b,4+hash(i,3,8)*8,4+hash(i,4,8)*8,3)},
+ 'Y':onGround(s=>{rect(s,2,3,12,12,2);ell(s,8,3,6,2,1);rect(s,10,4,2,10,3);rect(s,2,7,12,1,4);rect(s,2,12,12,1,4);rect(s,5,8,3,3,1);px(s,6,9,4)}),
+ 'y':onGround(s=>{rect(s,0,7,16,4,2);rect(s,0,7,16,1,1);ell(s,8,9,5,5,3);ell(s,8,9,3,3,0);line(s,3,9,13,9,3);line(s,8,4,8,14,3);px(s,8,9,1)}),
+ 'A':onGround(s=>{line(s,4,15,7,2,3);line(s,12,15,9,2,3);line(s,5,11,11,11,3);line(s,6,7,10,7,3);line(s,5,11,10,7,3);line(s,8,2,8,0,3);px(s,8,0,1);ell(s,11,3,2,2,2)}),
+ 'Q':b=>{rect(b,0,0,16,16,3);rect(b,0,6,16,1,4);rect(b,0,12,16,1,4);stamp(b,1,2,['22.11.2','22.11.2','22.11.2','4444444']);stamp(b,8,8,['1.22.1','1.22.1','1.22.1'])},
+ 'N':b=>{rect(b,0,0,16,16,1);for(let x=0;x<16;x+=4)rect(b,x,0,2,16,2);rect(b,0,15,16,1,4);rect(b,0,0,16,1,4);rect(b,5,4,6,6,1);rect(b,7,4,2,6,4);rect(b,5,6,6,2,4)},
+ '#X':b=>rect(b,0,0,16,16,4)
+};
+const CAR=(()=>{const b=mkBuf(32,16);const s=mkBuf(32,16);rect(s,1,7,30,5,2);poly(s,[[7,7],[10,2],[21,2],[25,7]],2);poly(s,[[9,7],[11,3],[15,3],[15,7]],4);poly(s,[[17,7],[17,3],[20,3],[23,7]],3);
+ rect(s,1,10,30,1,3);for(let i=0;i<7;i++)px(s,3+hash(i,5,6)*26,8+hash(i,6,6)*3,3);ell(s,7,12.5,3,3,4);ell(s,24,13,3,2.5,4);px(s,7,12,2);rect(s,27,7,3,2,1);outline(s);
+ const g1=mkBuf(16,16),g2=mkBuf(16,16);ground(g1);ground(g2);blit(b,g1,0,0);blit(b,g2,16,0);blit(b,s,0,0);return b})();
+TILEFN['C']=b=>{for(let y=0;y<16;y++)for(let x=0;x<16;x++)b.d[y*16+x]=CAR.d[y*32+x]};
+TILEFN['c']=b=>{for(let y=0;y<16;y++)for(let x=0;x<16;x++)b.d[y*16+x]=CAR.d[y*32+x+16]};
+const SOLID=new Set('#CcTFHWRdBSKOP^GYyAQN~X'.split(''));
+const TILES={};
+function buildTiles(){for(const k in TILEFN){TILES[k]=[0,1].map(f=>{const b=mkBuf(16,16);TILEFN[k](b,f);return toCanvas(b)})}}
+
+// --- objects
+const OBJSPR={};
+function buildObjs(){
+ let s=mkBuf(16,16);poly(s,[[1,15],[4,7],[8,5],[12,8],[15,15]],2);rect(s,5,9,4,3,3);line(s,9,6,13,3,3);px(s,13,3,1);rect(s,3,12,3,2,1);px(s,10,11,4);px(s,11,12,1);outline(s);OBJSPR.pile=toCanvas(s);
+ s=mkBuf(16,16);poly(s,[[2,15],[5,12],[11,12],[14,15]],3);px(s,6,14,2);px(s,10,13,2);outline(s);OBJSPR.looted=toCanvas(s);
+ s=mkBuf(16,16);rect(s,7,9,2,6,3);rect(s,2,2,12,8,2);rect(s,4,4,8,1,3);rect(s,4,6,6,1,3);outline(s);OBJSPR.sign=toCanvas(s);
+ s=mkBuf(8,8);stamp(s,0,0,['.4444.','441144','441144','.4114.','..44..','..11..','..44..']);OBJSPR.bang=toCanvas(s);
+ // capture jar
+ s=mkBuf(10,10);rect(s,2,2,6,7,2);rect(s,2,1,6,2,3);rect(s,3,4,2,3,1);outline(s);OBJSPR.jar=toCanvas(s);
+}
+
+// --- people: dir 0 down,1 up,2 left,3 right ; frames 0 stand,1/2 step
+function personBuf(o,dir,fr){const b=mkBuf(16,16);const side=dir>=2,up=dir===1;const cl=o.cloth||2,hr=o.hair||4,sk=1;
+ // legs
+ if(side){if(fr===0)rect(b,6,12,4,4,4);else{rect(b,4,12,2,3+(fr===1?1:0),4);rect(b,9,12,2,3+(fr===2?1:0),4)}}
+ else{rect(b,5,12,2,fr===1?3:4,4);rect(b,9,12,2,fr===2?3:4,4)}
+ // body
+ const by=fr?7:7;rect(b,4,by,8,6,cl);rect(b,4,by+4,8,1,4);
+ if(o.coat){rect(b,4,by,8,7,o.coat===true?3:o.coat);if(!side)rect(b,7,by,2,6,cl)}
+ if(side){const ax=fr===1?5:fr===2?9:7;rect(b,ax,by+1,2,4,cl===2?3:2);px(b,ax,by+5,sk)}
+ else{rect(b,3,by+1,1,4,cl);rect(b,12,by+1,1,4,cl);px(b,3,by+5,sk);px(b,12,by+5,sk)}
+ // head
+ ell(b,8,4.5,4.5,4.3,sk);
+ for(let y=0;y<10;y++)for(let x=0;x<16;x++){if(gp(b,x,y)!==sk)continue;let h=false;
+  if(up)h=y<8;else if(side)h=y<=2||(x>=9&&y<7);else h=y<=2||(o.long&&(x<=4||x>=11)&&y<8);if(h)px(b,x,y,hr)}
+ if(!up){if(side){px(b,4,5,4)}else{px(b,6,5,4);px(b,9,5,4)}}
+ const hat=o.hat;
+ if(hat==='cap'){rect(b,3,0,10,3,o.hatc||3);if(side)rect(b,1,2,5,1,o.hatc||3);else if(!up)rect(b,3,3,10,1,4)}
+ if(hat==='helm'){ell(b,8,3,5,3.5,3);rect(b,3,3,10,1,4);for(let x=4;x<13;x+=3)px(b,x,-0,2);if(!up&&!side){px(b,6,5,4);px(b,9,5,4)}}
+ if(hat==='hood'){for(let y=0;y<10;y++)for(let x=0;x<16;x++){if(gp(b,x,y)===0)continue;if(y<8&&(up||y<3||(side?x>=8:(x<5||x>10))))px(b,x,y,o.hatc||3)}}
+ if(hat==='mohawk'){rect(b,7,-1,2,4,4);px(b,7,0,2)}
+ if(hat==='goggles'&&!up){if(side){rect(b,3,3,6,1,4);px(b,4,3,1)}else{rect(b,3,3,10,1,4);px(b,6,3,1);px(b,9,3,1)}}
+ if(hat==='goggles'&&up)rect(b,3,3,10,1,4);
+ if(hat==='bald'){for(let y=0;y<3;y++)for(let x=0;x<16;x++)if(gp(b,x,y)===hr)px(b,x,y,sk);if(!up&&!side)rect(b,5,7,6,1,3)}
+ if(o.scarf)rect(b,4,by,8,1,o.scarf);
+ if(o.beard&&!up)rect(b,side?3:5,6,side?5:6,2,o.beard);
+ outline(b);return b}
+const PCACHE={};
+function personSpr(o){const k=JSON.stringify(o);if(PCACHE[k])return PCACHE[k];const r=[0,1,2].map(d=>[0,1,2].map(f=>toCanvas(personBuf(o,d,f))));r[3]=[0,1,2].map(f=>toCanvas(personBuf(o,2,f),true));PCACHE[k]=r;return r}
+
+// --- creatures 40x40
+const ART={
+ GLOWPUP:b=>{ell(b,23,27,10,7,2);line(b,31,24,36,15,2,3);rect(b,14,30,3,7,2);rect(b,27,30,3,7,2);rect(b,20,31,3,6,2);
+  poly(b,[[8,14],[9,4],[14,11]],2);poly(b,[[16,11],[20,4],[21,14]],2);ell(b,14,17,8,7,2);ell(b,8,20,4,3,2);px(b,5,19,4);px(b,5,20,4);
+  ell(b,13,16,1.6,2,4);px(b,13,15,1);line(b,7,23,11,23,4);ell(b,25,23,2,1.5,1);ell(b,29,26,1.5,1.5,1);ell(b,20,25,1.5,1.2,1);px(b,36,13,1);px(b,3,10,1);px(b,32,10,1)},
+ GLOWHOUND:b=>{ell(b,24,25,13,8,2);line(b,35,22,38,10,2,4);rect(b,13,29,4,9,2);rect(b,31,29,4,9,2);rect(b,20,30,4,8,2);
+  for(let i=0;i<4;i++)poly(b,[[17+i*5,19],[19+i*5,9+i%2*3],[22+i*5,19]],1);
+  poly(b,[[5,10],[6,0],[11,8]],2);poly(b,[[13,8],[17,0],[18,11]],2);ell(b,11,14,8,7,2);poly(b,[[2,15],[8,14],[8,22],[2,20]],2);
+  ell(b,10,12,1.8,2,4);px(b,10,11,1);rect(b,2,19,6,1,4);px(b,3,20,1);px(b,6,20,1);px(b,1,16,4)},
+ RUSTLING:b=>{line(b,12,30,7,37,3,2);line(b,28,30,33,37,3,2);line(b,16,32,14,38,3,2);line(b,24,32,26,38,3,2);
+  ell(b,20,26,12,8,2);line(b,15,20,13,11,3,2);line(b,25,20,27,11,3,2);ell(b,13,10,3,3,1);ell(b,27,10,3,3,1);px(b,13,10,4);px(b,27,10,4);
+  ell(b,5,22,5,4,2);ell(b,35,22,5,4,2);line(b,1,21,5,22,4);line(b,39,21,35,22,4);line(b,12,24,28,24,3);px(b,15,28,1);px(b,25,28,1);px(b,20,21,1);rect(b,17,29,6,1,4)},
+ RUSTCLAD:b=>{for(let i=0;i<3;i++){line(b,10-i*2,28+i*2,3-i,37,3,2);line(b,30+i*2,28+i*2,37+i,37,3,2)}
+  ell(b,20,24,15,10,2);for(let i=0;i<5;i++)poly(b,[[9+i*5,17],[11+i*5,8],[14+i*5,17]],3);line(b,8,22,32,22,3);line(b,10,27,30,27,3);
+  ell(b,3,14,4,6,2);ell(b,37,14,4,6,2);line(b,0,12,4,15,4);line(b,40,12,36,15,4);ell(b,15,25,2.5,2.5,1);ell(b,25,25,2.5,2.5,1);px(b,15,25,4);px(b,25,25,4);rect(b,16,30,8,2,4);rect(b,31,4,3,6,3);px(b,32,2,2)},
+ SLUDGELING:b=>{poly(b,[[6,36],[7,26],[12,18],[20,15],[28,18],[33,26],[35,36]],2);ell(b,10,36,3,2,2);ell(b,30,37,3,2,2);ell(b,20,37,4,2,2);
+  ell(b,14,21,4,4,1);ell(b,26,20,4,4,1);ell(b,15,22,1.5,2,4);ell(b,27,21,1.5,2,4);line(b,15,29,25,29,4);px(b,16,30,4);px(b,24,30,4);
+  ell(b,9,30,1.5,1.5,1);ell(b,30,28,1,1,1);ell(b,22,34,1.5,1,3);px(b,20,11,1);ell(b,20,12,1.5,1.5,1)},
+ SLUDGEMAW:b=>{poly(b,[[2,38],[3,22],[10,10],[20,6],[30,10],[37,22],[38,38]],2);ell(b,12,13,3,3,1);ell(b,20,9,3,3,1);ell(b,28,13,3,3,1);px(b,12,13,4);px(b,20,9,4);px(b,28,13,4);
+  ell(b,20,27,12,7,4);for(let i=0;i<6;i++){poly(b,[[9+i*4,21],[11+i*4,25],[13+i*4,21]],1);poly(b,[[9+i*4,33],[11+i*4,29],[13+i*4,33]],1)}ell(b,20,28,5,2,3);px(b,5,30,1);px(b,35,28,1)},
+ DUSTRAT:b=>{line(b,31,32,38,22,3);line(b,38,22,36,16,3);ell(b,23,29,11,6,2);ell(b,11,26,6,5,2);poly(b,[[2,28],[7,23],[8,30]],2);ell(b,12,19,3,3,2);ell(b,12,19,1.5,1.5,3);
+  px(b,9,24,4);px(b,9,23,1);px(b,2,27,4);rect(b,4,30,2,2,1);line(b,1,25,4,26,3);line(b,1,30,4,29,3);rect(b,14,33,3,4,2);rect(b,28,33,3,4,2);px(b,22,26,3);px(b,25,27,3);px(b,19,28,3)},
+ BONEBEAK:b=>{poly(b,[[16,18],[0,12],[4,22],[14,28]],3);poly(b,[[26,18],[40,12],[36,22],[28,28]],3);ell(b,21,24,7,10,3);ell(b,19,15,5,3,2);ell(b,16,9,4,4,1);
+  poly(b,[[11,9],[7,11],[8,13],[12,12]],2);px(b,15,8,4);for(let i=0;i<3;i++)line(b,18,21+i*3,24,21+i*3,1);line(b,19,33,17,38,3);line(b,23,33,25,38,3)},
+ SPARKBUG:b=>{for(let i=0;i<3;i++){line(b,12,22+i*5,5,25+i*5,3);line(b,28,22+i*5,35,25+i*5,3)}ell(b,20,26,11,9,2);line(b,20,17,20,35,4);ell(b,20,15,6,4,3);
+  line(b,17,12,12,4,3);line(b,23,12,28,4,3);ell(b,12,4,2,2,1);ell(b,28,4,2,2,1);px(b,17,15,1);px(b,23,15,1);stamp(b,4,8,['1..','.1.','1..']);stamp(b,33,8,['..1','.1.','..1']);px(b,15,24,1);px(b,24,29,1)},
+ GEIGERMOTH:b=>{poly(b,[[19,18],[2,4],[0,18],[17,24]],2);poly(b,[[21,18],[38,4],[40,18],[23,24]],2);poly(b,[[18,24],[5,34],[10,36],[19,28]],2);poly(b,[[22,24],[35,34],[30,36],[21,28]],2);
+  ell(b,8,13,3,3,4);ell(b,8,13,1.5,1.5,1);ell(b,32,13,3,3,4);ell(b,32,13,1.5,1.5,1);ell(b,20,22,3,9,3);line(b,19,13,14,5,3);line(b,21,13,26,5,3);px(b,14,5,1);px(b,26,5,1);ell(b,20,15,2.5,2.5,3);px(b,20,20,1);px(b,20,24,1)},
+ TINJAW:b=>{ell(b,22,32,13,5,2);ell(b,26,28,9,4,3);ell(b,20,26,7,4,2);rect(b,15,8,14,11,2);for(let x=17;x<29;x+=3)rect(b,x,8,1,11,3);rect(b,15,8,14,1,1);
+  rect(b,15,19,14,4,3);for(let i=0;i<4;i++){poly(b,[[16+i*3,19],[17.5+i*3,22],[19+i*3,19]],1)}ell(b,20,13,2.5,2.5,1);px(b,20,13,4);px(b,10,30,3);px(b,30,33,3)},
+ BLIGHTOAD:b=>{ell(b,20,29,15,9,2);ell(b,11,17,5,5,2);ell(b,29,17,5,5,2);ell(b,11,17,2,2.5,4);ell(b,29,17,2,2.5,4);px(b,10,16,1);px(b,28,16,1);
+  line(b,8,27,32,27,4);ell(b,7,35,5,3,2);ell(b,33,35,5,3,2);[[16,22],[24,23],[20,33],[13,31],[28,31]].forEach(([x,y])=>ell(b,x,y,1.5,1.5,1));px(b,22,20,3)},
+ WIREWYRM:b=>{let pts=[];for(let i=0;i<=30;i++){pts.push([6+i,26+Math.sin(i/30*Math.PI*2.2)*8])}for(let i=0;i<pts.length-1;i++)line(b,pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1],2,5);
+  for(let i=2;i<30;i+=4)line(b,pts[i][0],pts[i][1]-2,pts[i][0],pts[i][1]+2,3);ell(b,8,14,6,5,2);rect(b,1,10,3,1,1);rect(b,1,13,3,1,1);px(b,8,12,4);px(b,9,12,1);line(b,4,17,10,17,4);stamp(b,30,8,['1.1','.1.','1.1'])},
+ TWINHOG:b=>{ell(b,25,26,13,9,2);for(let i=0;i<5;i++)poly(b,[[16+i*4,18],[18+i*4,12],[20+i*4,18]],3);rect(b,15,32,4,6,2);rect(b,31,32,4,6,2);
+  ell(b,9,24,6,6,2);ell(b,14,13,6,5,2);ell(b,4,26,3,2.5,3);ell(b,9,15,3,2,3);px(b,8,21,4);px(b,13,11,4);poly(b,[[4,28],[1,23],[3,28]],1);poly(b,[[10,17],[6,12],[8,17]],1);poly(b,[[6,28],[5,23],[8,28]],1)},
+ CHROMEFANG:b=>{poly(b,[[12,20],[30,16],[37,24],[33,32],[14,32]],2);poly(b,[[3,14],[13,9],[18,14],[16,22],[6,22]],2);poly(b,[[8,10],[9,1],[13,9]],2);poly(b,[[13,10],[17,3],[17,12]],2);
+  line(b,14,22,32,18,1);line(b,16,27,33,25,3);rect(b,14,31,4,7,2);rect(b,30,30,4,8,2);line(b,36,24,40,16,2,3);px(b,9,14,1);px(b,10,14,1);px(b,9,15,4);poly(b,[[4,20],[5,24],[6,20]],1);poly(b,[[8,21],[9,24],[10,21]],1);px(b,25,21,1);px(b,20,24,1)},
+ GLOWROACH:b=>{for(let i=0;i<3;i++){line(b,14,20+i*6,5,18+i*8,3);line(b,26,20+i*6,35,18+i*8,3)}ell(b,20,25,9,12,3);for(let y=18;y<36;y+=4)line(b,13,y,27,y,2);line(b,20,14,20,37,4);
+  ell(b,20,12,5,4,2);line(b,18,9,8,1,3);line(b,22,9,32,1,3);px(b,18,11,1);px(b,22,11,1);ell(b,16,26,1.5,3,1);ell(b,24,26,1.5,3,1)}
+};
+const MSPR={};
+function buildMons(){for(const k in ART){const b=mkBuf(40,40);ART[k](b);autoShade(b);outline(b);MSPR[k]={f:toCanvas(b),b:toCanvas(b,true)}}}
+function drawDie(x,y,v){box(x,y,20,20);const P={1:[[9,9]],2:[[5,5],[13,13]],3:[[5,5],[9,9],[13,13]],4:[[5,5],[13,5],[5,13],[13,13]],5:[[5,5],[13,5],[9,9],[5,13],[13,13]],6:[[5,4],[13,4],[5,9],[13,9],[5,14],[13,14]]}[v];
+ P.forEach(([a,b])=>fill(4,x+a,y+b,2,2))}
+
+// ===== DATA: types, moves, species, items =====
+const TYPES=['FERAL','RAD','RUST','TOXIC','VOLT'];
+const CHART={RUST:{RAD:2,TOXIC:.5,VOLT:.5,RUST:.5},RAD:{TOXIC:2,FERAL:2,RUST:.5,RAD:.5},TOXIC:{RUST:2,FERAL:2,RAD:.5,TOXIC:.5},FERAL:{VOLT:2,RUST:.5},VOLT:{RUST:2,VOLT:.5,RAD:.5,TOXIC:2}};
+const eff=(a,d)=>(CHART[a]&&CHART[a][d])||1;
+const MOVES={
+ GNAW:{n:'Gnaw',t:'FERAL',p:35,a:100,pp:35},SCRATCH:{n:'Scratch',t:'FERAL',p:40,a:100,pp:35},BITE:{n:'Bite',t:'FERAL',p:60,a:95,pp:25},MAUL:{n:'Maul',t:'FERAL',p:85,a:85,pp:15},
+ PECK:{n:'Bone Peck',t:'FERAL',p:40,a:100,pp:35},WING:{n:'Wing Gust',t:'FERAL',p:60,a:95,pp:25},GORE:{n:'Tusk Gore',t:'FERAL',p:75,a:90,pp:15},
+ SNARL:{n:'Snarl',t:'FERAL',p:0,a:100,pp:30,fx:'atkDown'},HOWL:{n:'Howl',t:'FERAL',p:0,a:100,pp:20,fx:'atkUp'},DUSTKICK:{n:'Dust Kick',t:'FERAL',p:0,a:100,pp:20,fx:'accDown'},
+ GLOW:{n:'Glow Beam',t:'RAD',p:45,a:100,pp:30},HALFLIFE:{n:'Half-Life',t:'RAD',p:70,a:90,pp:20},FALLOUT:{n:'Fallout',t:'RAD',p:95,a:80,pp:10},IRRADIATE:{n:'Irradiate',t:'RAD',p:0,a:85,pp:15,fx:'sick'},
+ RAM:{n:'Iron Ram',t:'RUST',p:45,a:100,pp:30},SHRAP:{n:'Shrapnel',t:'RUST',p:70,a:90,pp:20},CANNON:{n:'Scrap Cannon',t:'RUST',p:95,a:80,pp:10},PLATE:{n:'Plate Up',t:'RUST',p:0,a:100,pp:20,fx:'defUp'},
+ ACID:{n:'Acid Spit',t:'TOXIC',p:45,a:100,pp:30},SLUDGE:{n:'Sludge Bomb',t:'TOXIC',p:70,a:90,pp:20},MIASMA:{n:'Miasma',t:'TOXIC',p:95,a:80,pp:10},TOXMIST:{n:'Toxic Mist',t:'TOXIC',p:0,a:90,pp:15,fx:'sick'},
+ SPARK:{n:'Spark',t:'VOLT',p:45,a:100,pp:30},ARC:{n:'Arc Lash',t:'VOLT',p:70,a:90,pp:20},OVERLOAD:{n:'Overload',t:'VOLT',p:95,a:80,pp:10},STATIC:{n:'Static Hum',t:'VOLT',p:0,a:100,pp:20,fx:'spdUp'},
+ FLAIL:{n:'Flail',t:'FERAL',p:30,a:100,pp:99}
+};
+const SPECIES={
+ GLOWPUP:{n:'Glowpup',t:'RAD',hp:45,at:55,df:43,sp:60,xp:64,cr:45,evo:['GLOWHOUND',14],d:'A pup that ate from a reactor bin. Glows when happy.',learn:[[1,'SCRATCH'],[1,'GLOW'],[4,'SNARL'],[8,'BITE'],[11,'HALFLIFE'],[17,'FALLOUT']]},
+ GLOWHOUND:{n:'Glowhound',t:'RAD',hp:70,at:85,df:65,sp:85,xp:150,cr:30,d:'Its crystal spines hum near old bombs.',learn:[[1,'BITE'],[1,'GLOW'],[11,'HALFLIFE'],[14,'HOWL'],[17,'FALLOUT'],[22,'MAUL']]},
+ RUSTLING:{n:'Rustling',t:'RUST',hp:50,at:48,df:62,sp:40,xp:64,cr:45,evo:['RUSTCLAD',14],d:'A crab that wears a dead car part as armor.',learn:[[1,'GNAW'],[1,'RAM'],[4,'PLATE'],[8,'BITE'],[11,'SHRAP'],[17,'CANNON']]},
+ RUSTCLAD:{n:'Rustclad',t:'RUST',hp:75,at:78,df:95,sp:45,xp:150,cr:30,d:'Spiked scrap shell. Smokes when angry.',learn:[[1,'RAM'],[1,'PLATE'],[11,'SHRAP'],[14,'MAUL'],[17,'CANNON']]},
+ SLUDGELING:{n:'Sludgeling',t:'TOXIC',hp:55,at:50,df:48,sp:50,xp:64,cr:45,evo:['SLUDGEMAW',14],d:'Living spill. Smells like a drum of regret.',learn:[[1,'GNAW'],[1,'ACID'],[4,'TOXMIST'],[8,'BITE'],[11,'SLUDGE'],[17,'MIASMA']]},
+ SLUDGEMAW:{n:'Sludgemaw',t:'TOXIC',hp:85,at:80,df:70,sp:55,xp:150,cr:30,d:'Three eyes, one appetite.',learn:[[1,'ACID'],[1,'BITE'],[11,'SLUDGE'],[14,'TOXMIST'],[17,'MIASMA'],[22,'MAUL']]},
+ DUSTRAT:{n:'Dustrat',t:'FERAL',hp:32,at:48,df:35,sp:66,xp:40,cr:190,d:'Mangy, fast, everywhere.',learn:[[1,'GNAW'],[1,'DUSTKICK'],[6,'BITE'],[12,'HOWL'],[16,'MAUL']]},
+ BONEBEAK:{n:'Bonebeak',t:'FERAL',hp:40,at:56,df:40,sp:72,xp:52,cr:150,d:'A vulture with its ribs on the outside.',learn:[[1,'PECK'],[1,'DUSTKICK'],[7,'WING'],[13,'SNARL'],[16,'MAUL']]},
+ SPARKBUG:{n:'Sparkbug',t:'VOLT',hp:36,at:45,df:42,sp:75,xp:52,cr:160,d:'Feeds on dead batteries. Crackles at night.',learn:[[1,'GNAW'],[1,'SPARK'],[6,'STATIC'],[10,'ARC'],[18,'OVERLOAD']]},
+ GEIGERMOTH:{n:'Geigermoth',t:'RAD',hp:40,at:48,df:44,sp:66,xp:56,cr:140,d:'Its wingbeat clicks like a counter.',learn:[[1,'GLOW'],[1,'IRRADIATE'],[9,'WING'],[12,'HALFLIFE'],[19,'FALLOUT']]},
+ TINJAW:{n:'Tinjaw',t:'RUST',hp:46,at:60,df:56,sp:44,xp:58,cr:130,d:'A serpent that lives in a food tin. Bites back.',learn:[[1,'GNAW'],[1,'RAM'],[6,'PLATE'],[10,'SHRAP'],[16,'BITE']]},
+ BLIGHTOAD:{n:'Blightoad',t:'TOXIC',hp:56,at:50,df:52,sp:40,xp:58,cr:130,d:'Its boils pop. Do not stand close.',learn:[[1,'ACID'],[1,'TOXMIST'],[8,'BITE'],[11,'SLUDGE'],[18,'MIASMA']]},
+ WIREWYRM:{n:'Wirewyrm',t:'VOLT',hp:52,at:66,df:46,sp:62,xp:80,cr:90,d:'A coil of live cable with a plug for a face.',learn:[[1,'SPARK'],[1,'BITE'],[8,'STATIC'],[10,'ARC'],[15,'OVERLOAD']]},
+ TWINHOG:{n:'Twinhog',t:'FERAL',hp:76,at:72,df:60,sp:36,xp:85,cr:90,d:'Two heads, zero manners.',learn:[[1,'GNAW'],[1,'SNARL'],[7,'GORE'],[11,'HOWL'],[15,'MAUL']]},
+ CHROMEFANG:{n:'Chromefang',t:'RUST',hp:72,at:88,df:76,sp:74,xp:170,cr:25,d:'A wolf of polished chrome. Rarely seen, never forgotten.',learn:[[1,'BITE'],[1,'RAM'],[8,'HOWL'],[11,'SHRAP'],[15,'MAUL'],[19,'CANNON']]},
+ GLOWROACH:{n:'Glowroach',t:'RAD',hp:36,at:40,df:70,sp:56,xp:46,cr:170,d:'It survived the end. It will survive you.',learn:[[1,'GNAW'],[1,'GLOW'],[7,'PLATE'],[12,'HALFLIFE']]}
+};
+const ITEMS={
+ GAUZE:{n:'Gauze Wad',d:'Heals a mon 25 HP.',price:20,heal:25,bat:1},
+ TONIC:{n:'Rad-Tonic',d:'Heals a mon 70 HP.',price:60,heal:70,bat:1},
+ PURGE:{n:'Purge Pill',d:'Cures SICK status.',price:25,cure:1,bat:1},
+ SALTS:{n:'Jolt Salts',d:'Revives a fainted mon to half HP.',price:120,revive:1,bat:1},
+ JAR:{n:'Snare Jar',d:'Capture device. Basic.',price:30,cap:1,bat:1},
+ CAGE:{n:'Cage Can',d:'Capture device. 1.6x better.',price:75,cap:1.6,bat:1},
+ TESLA:{n:'Tesla Trap',d:'Capture device. 2.5x better.',price:200,cap:2.5,bat:1},
+ SCRAP:{n:'Scrap',d:'Crafting junk. Bolts, springs, foil.',price:6},
+ WIRE:{n:'Copper Wire',d:'Crafting. Precious stuff.',price:14},
+ FUSE:{n:'Fusecell',d:'Crafting. A live pre-Fall battery.',price:40},
+ GLOWCAP:{n:'Glowcap',d:'Glowing fungus. Medicinal.',price:15},
+ CORE:{n:'Purifier Core',d:'The heart of a water purifier. Humming.',key:1},
+ COIL:{n:'Signal Coil',d:'A radio transmitter coil.',key:1}
+};
+const RECIPES=[{out:'JAR',n:1,req:{SCRAP:2,WIRE:1}},{out:'CAGE',n:1,req:{SCRAP:3,WIRE:2}},{out:'TESLA',n:1,req:{FUSE:1,WIRE:2}},{out:'GAUZE',n:2,req:{SCRAP:1,GLOWCAP:1}},{out:'TONIC',n:1,req:{GLOWCAP:2,WIRE:1}}];
+const STATS=['GRIT','WITS','CHARM','SCAV','AIM'];
+const STATDESC={GRIT:'Toughness. Intimidate. Your mons get bonus max HP.',WITS:'Smarts. Spot lies, fix tech. Bonus battle XP.',CHARM:'Silver tongue. Persuade. Better trade prices.',SCAV:'Scavenging. More loot from junk piles.',AIM:'Throwing arm. Better captures, more crits.'};
+const BGS=[{id:'scav',n:'Scav-Rat',tag:'SCAV-RAT',st:'SCAV',d:'Raised in junkpiles. +1 SCAV. Junk and trade talk.'},
+ {id:'raider',n:'Ex-Raider',tag:'EX-RAIDER',st:'GRIT',d:'You rode with the Scorch Gang once. +1 GRIT. Raiders know you.'},
+ {id:'choir',n:'Choir Novice',tag:'NOVICE',st:'WITS',d:'You fled the Iron Choir. +1 WITS. Knows their secrets.'},
+ {id:'caravan',n:'Caravan Kid',tag:'CARAVAN',st:'CHARM',d:'Grew up on trade roads. +1 CHARM. Deals and gossip.'}];
+// ----- mon helpers
+const xpFor=lv=>Math.floor(.8*lv*lv*lv);
+function calcStats(m){const s=SPECIES[m.sp];const old=m.maxhp||0;
+ m.maxhp=Math.floor(s.hp*2*m.lv/100)+m.lv+10+(m.own?Math.floor(P.stats.GRIT*m.lv/6):0);
+ m.at=Math.floor(s.at*2*m.lv/100)+5;m.df=Math.floor(s.df*2*m.lv/100)+5;m.spd=Math.floor(s.sp*2*m.lv/100)+5;return m.maxhp-old}
+function makeMon(sp,lv,own){const m={sp,lv,xp:xpFor(lv),hp:0,moves:[],status:null,own:!!own};calcStats(m);m.hp=m.maxhp;
+ const L=SPECIES[sp].learn.filter(l=>l[0]<=lv);const seen=new Set();const uniq=[];for(let i=L.length-1;i>=0&&uniq.length<4;i--){if(!seen.has(L[i][1])){seen.add(L[i][1]);uniq.unshift(L[i][1])}}
+ m.moves=uniq.map(id=>({id,pp:MOVES[id].pp}));return m}
+const mname=m=>m.nick||SPECIES[m.sp].n;
+const mtype=m=>SPECIES[m.sp].t;
+function healAll(){for(const m of P.party.concat(P.box)){calcStats(m);m.hp=m.maxhp;m.status=null;m.moves.forEach(s=>s.pp=MOVES[s.id].pp)}}
+
+// ===== UI: modals, text boxes, menus =====
+const modals=[];let timers=[];let fadeLv=0,flashOn=false,wipe=0;
+function wait(f){return new Promise(r=>timers.push({f,r}))}
+function tickTimers(){const t=timers;timers=[];for(const x of t){if(--x.f<=0)x.r();else timers.push(x)}}
+function pushModal(m){return new Promise(res=>{m.done=v=>{const i=modals.indexOf(m);if(i>=0)modals.splice(i,1);res(v)};modals.push(m)})}
+function wrap(t,max){max=max||24;const out=[];for(const para of String(t).split('\n')){let line='';for(const w of para.split(' ')){if(!line)line=w;else if(line.length+1+w.length<=max)line+=' '+w;else{out.push(line);line=w}}out.push(line)}return out}
+function drawTextBox(lines,shown,arrow){box(0,96,160,48);let n=shown;for(let i=0;i<lines.length&&i<3;i++){const L=lines[i];text(n>=L.length?L:L.slice(0,Math.max(0,n)),8,104+i*12);n-=L.length}if(arrow&&(FC>>4)%2)text('\x02',146,133)}
+function say(t,o){o=o||{};const lines=wrap(t);const pages=[];for(let i=0;i<lines.length;i+=3)pages.push(lines.slice(i,i+3));
+ return pushModal({kind:'say',pages,pg:0,ch:0,af:0,
+  tot(){return pages[this.pg].join('').length},
+  update(){const tot=this.tot();if(this.ch<tot){this.ch+=2;if(prs.a||prs.b)this.ch=tot;return}
+   this.af++;if((o.auto&&this.af>=o.auto)||prs.a||prs.b){if(!o.auto||prs.a||prs.b)SFX.sel();if(this.pg>=pages.length-1)this.done();else{this.pg++;this.ch=0;this.af=0}}},
+  draw(){drawTextBox(pages[this.pg],this.ch,this.ch>=this.tot()&&!o.auto)}})}
+function choose(opts,o){o=o||{};const pl=o.prompt?wrap(o.prompt).slice(-3):null;const vis=Math.min(opts.length,o.vis||6);
+ const maxL=Math.max(...opts.map(s=>s.length));if(maxL>23)console.warn('long option',opts);
+ const w=o.w||Math.min(160,maxL*6+22),h=vis*11+9;const x=o.x!==undefined?o.x:160-w,y=o.y!==undefined?o.y:(pl?96-h:144-h);
+ return pushModal({kind:'choose',opts,i:o.idx||0,top:0,
+  update(){const n=opts.length;if(prs.up){this.i=(this.i+n-1)%n;SFX.sel()}if(prs.down){this.i=(this.i+1)%n;SFX.sel()}
+   if(this.i<this.top)this.top=this.i;if(this.i>=this.top+vis)this.top=this.i-vis+1;
+   if(prs.a){SFX.ok();this.done(this.i)}else if(prs.b&&o.cancel){SFX.sel();this.done(-1)}},
+  draw(){if(pl)drawTextBox(pl,999,false);box(x,y,w,h);for(let k=0;k<vis;k++){const j=this.top+k;if(j>=opts.length)break;text(opts[j],x+13,y+5+k*11);if(j===this.i)text('\x01',x+5,y+5+k*11)}
+   if(this.top+vis<opts.length)text('\x02',x+w-10,y+h-9)}})}
+async function yesno(prompt){return (await choose(['YES','NO'],{prompt,cancel:true}))===0}
+function listMenu(o){const vis=7;
+ return pushModal({kind:'list',i:o.idx||0,top:0,
+  update(){const n=o.items.length;if(n){if(prs.up){this.i=(this.i+n-1)%n;SFX.sel()}if(prs.down){this.i=(this.i+1)%n;SFX.sel()}}
+   if(this.i<this.top)this.top=this.i;if(this.i>=this.top+vis)this.top=this.i-vis+1;
+   if(prs.a&&n){SFX.ok();this.done(this.i)}else if(prs.b&&o.cancel!==false){SFX.sel();this.done(-1)}},
+  draw(){fill(1,0,0,160,144);box(0,0,160,96);text(o.title,8,6);if(o.sub)text(o.sub,152-o.sub.length*6,6);fill(4,4,15,152,1);
+   if(!o.items.length)text('(nothing)',14,22);
+   for(let k=0;k<vis;k++){const j=this.top+k;if(j>=o.items.length)break;const it=o.items[j];text(it.l,14,19+k*10,it.dim?2:4);if(it.r)text(it.r,152-it.r.length*6,19+k*10,it.dim?2:4);if(j===this.i)text('\x01',6,19+k*10)}
+   if(this.top+vis<o.items.length)text('\x02',146,86);
+   const cur=o.items[this.i];box(0,96,160,48);if(cur&&cur.d)wrap(cur.d).slice(0,3).forEach((l,i)=>text(l,8,104+i*12))}})}
+function hpBar(x,y,w,hp,max){fill(4,x-1,y-1,w+2,5);fill(1,x,y,w,3);const r=hp/max;const f=Math.ceil(w*r);if(r>.2||(FC>>3)%2)fill(r>.5?3:r>.2?2:4,x,y,f,3)}
+function partyScreen(o){o=o||{};
+ return pushModal({kind:'party',i:o.idx||0,
+  update(){const n=P.party.length;if(prs.up){this.i=(this.i+n-1)%n;SFX.sel()}if(prs.down){this.i=(this.i+1)%n;SFX.sel()}
+   if(prs.a){SFX.ok();this.done(this.i)}else if(prs.b&&o.cancel!==false){SFX.sel();this.done(-1)}},
+  draw(){fill(1,0,0,160,144);P.party.forEach((m,k)=>{const y=k*16;if(k===this.i)fill(2,0,y,160,16);
+    const bob=(k===this.i&&(FC>>3)%2)?1:0;ctx.drawImage(MSPR[m.sp].f,8,y-bob,16,16);text(mname(m),28,y+1);text('L'+m.lv,90,y+1);
+    const hs=m.hp+'/'+m.maxhp;text(hs,158-hs.length*6,y+1);hpBar(28,y+11,100,m.hp,m.maxhp);const sx=m.hp<=0?'FNT':(m.status?'SCK':'');if(sx)text(sx,136,y+8);if(k===this.i)text('\x01',1,y+4)});
+   box(0,96,160,48);wrap(o.msg||'Choose a mon.').slice(0,3).forEach((l,i)=>text(l,8,104+i*12))}})}
+function monSummary(m){
+ return pushModal({kind:'summary',update(){if(prs.a||prs.b){SFX.sel();this.done()}},
+  draw(){fill(1,0,0,160,144);box(0,0,160,144);ctx.drawImage(MSPR[m.sp].f,8,6);const s=SPECIES[m.sp];
+   text(mname(m),54,8);text('Lv'+m.lv+'  '+s.t,54,18);text('HP '+m.hp+'/'+m.maxhp,54,28);text(m.status?'SICK':(m.hp<=0?'FAINTED':'OK'),54,38);
+   text('AT'+m.at+' DF'+m.df+' SP'+m.spd,8,50);text('XP to next: '+(m.lv>=50?0:xpFor(m.lv+1)-m.xp),8,60);
+   fill(4,6,71,148,1);m.moves.forEach((mv,i)=>{const d=MOVES[mv.id];text(d.n,8,76+i*10);text(mv.pp+'/'+d.pp,152-String(mv.pp+'/'+d.pp).length*6,76+i*10)});
+   wrap(s.d,24).slice(0,2).forEach((l,i)=>text(l,8,118+i*10,3))}})}
+function rollDie(){const v=1+rand(6);
+ return pushModal({kind:'dice',t:0,face:1+rand(6),update(){this.t++;if(this.t<36){if(this.t%4===0){this.face=1+rand(6);SFX.dice()}}else this.face=v;if(this.t>60||(this.t>36&&prs.a))this.done(v)},
+  draw(){drawTextBox(['Rolling the bones...'],99,false);const j=this.t<36?rand(3)-1:0;drawDie(70+j,64-(this.t<36?Math.abs(Math.sin(this.t/4))*8:0),this.face)}})}
+async function statCheck(st,dc){const v=await rollDie();const tot=v+P.stats[st];const ok=tot>=dc+3;(ok?SFX.pass:SFX.fail)();
+ await say(`[${st} ${dc}] d6 rolled ${v} + ${st} ${P.stats[st]} = ${tot} vs ${dc+3}... ${ok?'SUCCESS!':'FAILURE.'}`);return ok}
+// dialogue with CRPG options: entries {k,t,st,dc,id,bg,if}
+async function dlg(prompt,entries){const vis=entries.filter(e=>(e.if===undefined||e.if)&&(!e.bg||P.bg===e.bg)&&!(e.id&&flags['chk_'+e.id]));
+ const labels=vis.map(e=>(e.bg?`[${BGS.find(b=>b.id===e.bg).tag}] `:'')+(e.st?`[${e.st} ${e.dc}] `:'')+e.t);
+ const i=await choose(labels,{prompt});const e=vis[i];let ok=true;
+ if(e.st){if(e.id)flags['chk_'+e.id]=1;ok=await statCheck(e.st,e.dc)}return{k:e.k,ok}}
+function pickQty(max,unit){return pushModal({kind:'qty',n:1,update(){if(prs.up)this.n=Math.min(max,this.n+1);if(prs.down)this.n=Math.max(1,this.n-1);if(prs.right)this.n=Math.min(max,this.n+10);if(prs.left)this.n=Math.max(1,this.n-10);
+  if(prs.up||prs.down||prs.left||prs.right)SFX.sel();if(prs.a){SFX.ok();this.done(this.n)}else if(prs.b)this.done(0)},
+  draw(){box(64,70,96,26);text('x'+this.n,72,79);const c=(this.n*unit)+'b';text(c,152-c.length*6,79)}})}
+async function fadeOut(){for(let i=1;i<=4;i++){fadeLv=i;await wait(3)}}
+async function fadeIn(){for(let i=3;i>=0;i--){fadeLv=i;await wait(3)}}
+async function flashTrans(){for(let i=0;i<3;i++){flashOn=true;await wait(4);flashOn=false;await wait(4)}for(let i=0;i<=9;i++){wipe=i;await wait(2)}}
+function give(id,n){n=n||1;P.bag[id]=(P.bag[id]||0)+n}
+function has(id,n){return (P.bag[id]||0)>=(n||1)}
+function take(id,n){P.bag[id]=Math.max(0,(P.bag[id]||0)-(n||1));if(!P.bag[id])delete P.bag[id]}
+async function getItem(id,n){n=n||1;give(id,n);SFX.item();await say(`Got ${ITEMS[id].n}${n>1?' x'+n:''}!`)}
+const REPN=v=>v>=50?'Revered':v>=20?'Liked':v>-20?'Neutral':v>-50?'Disliked':'Hated';
+async function rep(f,d){P.rep[f]=clamp(P.rep[f]+d,-100,100);const N={settlers:'Rustwater',choir:'Iron Choir',scorch:'Scorch Gang'}[f];await say(`[${N} ${d>0?'+':''}${d}: ${REPN(P.rep[f])}]`)}
+async function bolts(d){P.bolts=Math.max(0,P.bolts+d);if(d>0)SFX.item();await say(d>0?`Received ${d} bolts.`:`Paid ${-d} bolts.`)}
+
+// ===== BATTLE =====
+let B=null;
+const stageMul=s=>s>=0?(2+s)/2:2/(2-s);
+const effStat=(m,k)=>m[k]*stageMul(m.st?(m.st[k]||0):0);
+const bsay=t=>say(t,{auto:50});
+const foe=()=>B.foes[B.fi];
+const pm=()=>P.party[B.pi];
+function who(m){return P.party.includes(m)?mname(m):(B&&B.tr?'Foe ':'Wild ')+mname(m)}
+async function hpAnim(){while(B&&(B.dE!==foe().hp||B.dP!==pm().hp)){const st=(cur,tgt,mx)=>{const s=Math.max(1,Math.ceil(mx/45));return cur<tgt?Math.min(tgt,cur+s):Math.max(tgt,cur-s)};
+ B.dE=st(B.dE,foe().hp,foe().maxhp);B.dP=st(B.dP,pm().hp,pm().maxhp);await wait(1)}}
+async function blink(enemy){const k=enemy?'eHide':'pHide';for(let i=0;i<8;i++){B[k]=i%2===0;await wait(3)}B[k]=false}
+function dmgCalc(a,d,mv,isP){const e=eff(mv.t,mtype(d));const stab=mv.t===mtype(a)?1.5:1;const crit=Math.random()<1/16+(isP?P.stats.AIM*.015:0);
+ const A=effStat(a,'at'),D=effStat(d,'df');let dmg=Math.floor(((2*a.lv/5+2)*mv.p*A/D)/50+2);dmg=Math.floor(dmg*stab*e*(crit?1.5:1)*(.85+Math.random()*.15));return{dmg:Math.max(1,dmg),e,crit}}
+function aiPick(m,t){const opts=m.moves.filter(s=>s.pp>0);if(!opts.length)return null;let best=null,bs=-1;
+ for(const s of opts){const mv=MOVES[s.id];let sc;if(mv.p>0)sc=mv.p*eff(mv.t,mtype(t))*(mv.t===mtype(m)?1.5:1)*mv.a/100;
+  else{sc=28;if(mv.fx==='sick'&&(t.status||mtype(t)===mv.t))sc=1;if(mv.fx==='atkUp'&&m.st.at>=2)sc=3;if(mv.fx==='defUp'&&m.st.df>=2)sc=3;if(mv.fx==='spdUp'&&m.st.spd>=2)sc=3;if(mv.fx==='atkDown'&&t.st.at<=-2)sc=3;if(mv.fx==='accDown'&&t.st.acc<=-2)sc=3}
+  sc*=(B.tr?.85:.6)+Math.random()*(B.tr?.3:.8);if(sc>bs){bs=sc;best=s}}return best}
+async function doMove(a,d,slot,isP){let mv;if(!slot){mv=MOVES.FLAIL;await bsay(`${who(a)} is out of moves!`)}else{mv=MOVES[slot.id];slot.pp=Math.max(0,slot.pp-1)}
+ await bsay(`${who(a)} used ${mv.n}!`);
+ const L=isP?'pLunge':'eLunge';for(const o of [3,6,9,6,3,0]){B[L]=o;await wait(1)}
+ if(Math.random()*100>=mv.a*stageMul(a.st.acc)){SFX.no();await bsay(`${who(a)}'s attack missed!`);return}
+ if(mv.p>0){const r=dmgCalc(a,d,mv,isP);if(r.e>1){SFX.big();B.shake=14}else SFX.hit();await blink(isP);
+  d.hp=Math.max(0,d.hp-r.dmg);await hpAnim();
+  if(r.crit)await bsay('A critical hit!');if(r.e>1)await bsay("It's super effective!");else if(r.e<1)await bsay("It's not very effective...");
+  if(!slot){a.hp=Math.max(0,a.hp-Math.max(1,Math.floor(r.dmg/3)));await hpAnim();await bsay(`${who(a)} is hurt by recoil!`)}
+ }else{const fx=mv.fx;
+  if(fx==='sick'){if(d.status){await bsay('But it failed!');return}if(mtype(d)===mv.t){await bsay(`${who(d)} is immune!`);return}d.status='SICK';SFX.hit();await blink(isP);await bsay(`${who(d)} got SICK!`);return}
+  const M={atkUp:['at',1,'attack rose!'],defUp:['df',1,'defense rose!'],spdUp:['spd',1,'speed rose!'],atkDown:['at',-1,'attack fell!'],accDown:['acc',-1,'accuracy fell!']}[fx];
+  const tgt=M[1]>0?a:d;if((M[1]>0&&tgt.st[M[0]]>=4)||(M[1]<0&&tgt.st[M[0]]<=-4)){await bsay('Nothing happened!');return}
+  tgt.st[M[0]]+=M[1];tone(M[1]>0?500:400,.18,'square',.2,0,M[1]>0?500:-250);if(M[1]<0)await blink(isP);await bsay(`${who(tgt)}'s ${M[2]}`)}}
+async function gainXp(m,amt){m.xp+=amt;while(m.lv<50&&m.xp>=xpFor(m.lv+1)){m.lv++;const d=calcStats(m);if(m.hp>0)m.hp=Math.min(m.maxhp,m.hp+d);if(B&&m===pm())B.dP=m.hp;SFX.lvl();
+ await say(`${mname(m)} grew to Lv ${m.lv}!`);for(const [l,id] of SPECIES[m.sp].learn)if(l===m.lv)await learnMove(m,id)}}
+async function learnMove(m,id){if(m.moves.some(s=>s.id===id))return;const mv=MOVES[id];if(m.moves.length<4){m.moves.push({id,pp:mv.pp});SFX.item();await say(`${mname(m)} learned ${mv.n}!`);return}
+ await say(`${mname(m)} wants to learn ${mv.n}, but already knows 4 moves.`);
+ const i=await choose(m.moves.map(s=>MOVES[s.id].n).concat(['Keep old moves']),{prompt:`Forget a move for ${mv.n}?`});
+ if(i<0||i===4){await say(`${mname(m)} did not learn ${mv.n}.`);return}const old=MOVES[m.moves[i].id].n;m.moves[i]={id,pp:mv.pp};SFX.item();await say(`1, 2, and... Poof! ${mname(m)} forgot ${old} and learned ${mv.n}!`)}
+async function checkFaints(){const e=foe(),p=pm();
+ if(e.hp<=0){SFX.faint();for(let i=0;i<12;i++){B.eDrop+=4;await wait(1)}B.eShow=false;B.eDrop=0;await bsay(`${who(e)} fainted!`);
+  const gain=Math.floor(SPECIES[e.sp].xp*e.lv/5*(B.tr?1.5:1)*(1+.06*P.stats.WITS));const parts=[...B.parts].filter(m=>m.hp>0&&P.party.includes(m));
+  const each=Math.max(1,Math.floor(gain/Math.max(1,parts.length)));for(const m of parts){await bsay(`${mname(m)} gained ${each} XP!`);await gainXp(m,each)}
+  B.parts=new Set([pm()]);
+  if(B.fi<B.foes.length-1){B.fi++;B.dE=foe().hp;P.seen[foe().sp]=1;await bsay(`${B.tr.name} sent out ${mname(foe())}!`);B.eShow=true;SFX.door();return 'next'}
+  return 'win'}
+ if(p.hp<=0){SFX.faint();for(let i=0;i<12;i++){B.pDrop+=4;await wait(1)}B.pShow=false;B.pDrop=0;await bsay(`${mname(p)} fainted!`);
+  if(P.party.some(m=>m.hp>0)){let idx=-1;while(idx<0){idx=await partyScreen({msg:'Choose your next mon.',cancel:false});if(P.party[idx].hp<=0){await say('That one has no fight left!');idx=-1}}
+   B.pi=idx;B.dP=pm().hp;B.pShow=true;await bsay(`Go! ${mname(pm())}!`);B.parts.add(pm());return 'next'}
+  return 'lose'}
+ return null}
+function canUse(it,m){if(it.heal)return m.hp>0&&m.hp<m.maxhp;if(it.cure)return m.hp>0&&!!m.status;if(it.revive)return m.hp<=0;return false}
+async function applyItem(it,m){if(it.heal){const b=m.hp;m.hp=Math.min(m.maxhp,m.hp+it.heal);if(B&&m===pm())await hpAnim();SFX.heal();await say(`${mname(m)} recovered ${m.hp-b} HP.`)}
+ else if(it.cure){m.status=null;SFX.heal();await say(`${mname(m)} is no longer SICK.`)}else if(it.revive){m.hp=Math.floor(m.maxhp/2);SFX.heal();await say(`${mname(m)} is back on its feet!`)}}
+async function throwJar(id){const it=ITEMS[id],e=foe();take(id);await bsay(`You hurl a ${it.n}!`);
+ B.jar={x:40,y:70,s:0};for(let i=0;i<=20;i++){const t=i/20;B.jar.x=40+t*84;B.jar.y=70-Math.sin(t*Math.PI)*46-t*36;await wait(1)}
+ SFX.hit();B.flashE=6;await wait(6);B.eShow=false;await wait(12);
+ let p=(1-(2/3)*(e.hp/e.maxhp))*(SPECIES[e.sp].cr/150)*it.cap*(1+.06*P.stats.AIM)*(e.status?1.4:1);p=clamp(p,.03,1);
+ const ok=Math.random()<p;const shakes=ok?3:(Math.random()<p*1.6?2:Math.random()<.5?1:0);
+ for(let i=0;i<shakes;i++){for(let k=0;k<12;k++){B.jar.s=Math.round(Math.sin(k/12*Math.PI*2)*3);await wait(1)}B.jar.s=0;SFX.shake();await wait(16)}
+ if(ok){SFX.catch();await say(`Gotcha! ${mname(e)} was snared!`);e.own=true;delete e.st;const r=e.hp/e.maxhp;calcStats(e);e.hp=Math.max(1,Math.round(e.maxhp*r));P.caught[e.sp]=1;
+  if(await yesno(`Give ${mname(e)} a nickname?`)){const nm=await nameEntry(mname(e),'NICKNAME?');if(nm&&nm!==mname(e))e.nick=nm}
+  if(P.party.length<6)P.party.push(e);else{P.box.push(e);await say(`Your party is full. ${mname(e)} was sent to Pell's crate in Rustwater.`)}return 'caught'}
+ B.jar=null;B.eShow=true;SFX.no();await bsay(pick(['Argh! It broke free!','Almost! It burst out!','The jar cracked open!']));return null}
+function battleMain(){return pushModal({kind:'bmain',i:B.mi||0,update(){let i=this.i;if(prs.up||prs.down){i^=2;SFX.sel()}if(prs.left||prs.right){i^=1;SFX.sel()}this.i=i;if(prs.a){SFX.ok();B.mi=i;this.done(i)}},
+ draw(){box(0,96,160,48);text('What will',8,104);const nm=mname(pm());if(nm.length<=7)text(nm+' do?',8,116);else{text(nm,8,116);text('do?',8,128)}box(80,96,80,48);['FIGHT','BAG','MON','RUN'].forEach((s,k)=>{const x=92+(k%2)*36,y=108+(k>>1)*14;text(s,x,y);if(k===this.i)text('\x01',x-8,y)})}})}
+function moveMenu(m){return pushModal({kind:'moves',i:0,update(){const n=m.moves.length;if(prs.up){this.i=(this.i+n-1)%n;SFX.sel()}if(prs.down){this.i=(this.i+1)%n;SFX.sel()}if(prs.a){SFX.ok();this.done(this.i)}else if(prs.b){SFX.sel();this.done(-1)}},
+ draw(){box(0,96,160,48);m.moves.forEach((s,k)=>{text(MOVES[s.id].n,16,102+k*10);if(k===this.i)text('\x01',8,102+k*10)});const s=m.moves[this.i],mv=MOVES[s.id];
+  box(72,58,88,40);text(mv.t,80,64);text('PP '+s.pp+'/'+mv.pp,80,74);const e=mv.p?eff(mv.t,mtype(foe())):1;text(mv.p?('PWR '+mv.p+(e>1?' x2':e<1?' x.5':'')):'STATUS',80,84)}})}
+async function battleMenu(){while(true){const c=await battleMain();
+ if(c===0){const p=pm();if(p.moves.every(s=>s.pp<=0))return{k:'move',slot:null};const s=await moveMenu(p);if(s<0)continue;if(p.moves[s].pp<=0){await say('No PP left for that move!');continue}return{k:'move',slot:p.moves[s]}}
+ if(c===1){const ids=Object.keys(P.bag).filter(k=>P.bag[k]>0&&ITEMS[k].bat);const i=await listMenu({title:'BAG',items:ids.map(k=>({l:ITEMS[k].n,r:'x'+P.bag[k],d:ITEMS[k].d}))});if(i<0)continue;
+  const id=ids[i],it=ITEMS[id];if(it.cap){if(B.tr){await say("You can't snare a raider's mon! They'd skin you alive.");continue}return{k:'item',id}}
+  const t=await partyScreen({msg:'Use on which mon?'});if(t<0)continue;if(!canUse(it,P.party[t])){await say("It won't have any effect.");continue}return{k:'item',id,target:t}}
+ if(c===2){const t=await partyScreen({msg:'Choose a mon.'});if(t<0)continue;const o=await choose(['SWITCH','STATS','CANCEL'],{cancel:true});
+  if(o===1){await monSummary(P.party[t]);continue}if(o!==0)continue;if(t===B.pi){await say(`${mname(pm())} is already fighting!`);continue}if(P.party[t].hp<=0){await say('That one has fainted!');continue}return{k:'switch',idx:t}}
+ if(c===3)return{k:'run'}}}
+async function bturn(){const act=await battleMenu();const p=pm(),e=foe();
+ if(act.k==='run'){if(B.tr){await say("No running from this fight! They've got you boxed in.");return null}
+  B.runs++;const ch=clamp(.55+(p.spd-e.spd)/(2*Math.max(1,e.spd))+.15*B.runs,.25,1);if(Math.random()<ch){SFX.door();await bsay('You slipped away safely!');return 'run'}await bsay("Couldn't get away!")}
+ else if(act.k==='switch'){await bsay(`${mname(p)}, come back!`);B.pShow=false;await wait(10);B.pi=act.idx;B.dP=pm().hp;B.pShow=true;SFX.door();await bsay(`Go! ${mname(pm())}!`);B.parts.add(pm())}
+ else if(act.k==='item'){const it=ITEMS[act.id];if(it.cap){const r=await throwJar(act.id);if(r)return r}else{take(act.id);await say(`You used a ${it.n}.`);await applyItem(it,P.party[act.target])}}
+ if(act.k==='move'){const pf=effStat(p,'spd')>effStat(e,'spd')||(effStat(p,'spd')===effStat(e,'spd')&&Math.random()<.5);
+  const es=aiPick(e,p);const order=pf?[[p,e,act.slot,true],[e,p,es,false]]:[[e,p,es,false],[p,e,act.slot,true]];
+  for(const [a,d,s,isP] of order){if(a.hp<=0||d.hp<=0||a!==(isP?pm():foe()))continue;await doMove(a,d,s,isP);const r=await checkFaints();if(r==='win'||r==='lose')return r;if(r==='next')break}}
+ else{const e2=foe();await doMove(e2,pm(),aiPick(e2,pm()),false);const r=await checkFaints();if(r==='win'||r==='lose')return r}
+ for(const m of [pm(),foe()]){if(m&&m.hp>0&&m.status==='SICK'){m.hp=Math.max(0,m.hp-Math.max(1,Math.floor(m.maxhp/10)));await bsay(`${who(m)} is wracked by sickness!`);await hpAnim();const r=await checkFaints();if(r==='win'||r==='lose')return r}}
+ return null}
+async function battle(foes,tr){const all=foes.concat(P.party);for(const m of all)m.st={at:0,df:0,acc:0,spd:0};
+ B={foes,fi:0,tr,pi:Math.max(0,P.party.findIndex(m=>m.hp>0)),eShow:false,pShow:false,dE:foes[0].hp,dP:0,shake:0,jar:null,eOff:0,pOff:0,eLunge:0,pLunge:0,eDrop:0,pDrop:0,runs:0,info:false,pinfo:false,parts:new Set(),mi:0};
+ B.dP=pm().hp;SFX.enc();playSong(tr&&tr.boss?'boss':'battle');await flashTrans();scene='battle';wipe=0;
+ B.eShow=true;B.eOff=-70;for(let i=0;i<20;i++){B.eOff+=3.5;await wait(1)}B.eOff=0;P.seen[foe().sp]=1;
+ if(tr){await bsay(`${tr.name} wants to fight!`);await bsay(`${tr.name} sent out ${mname(foe())}!`)}else await bsay(`A wild ${mname(foe())} lurches out of the dust!`);
+ B.info=true;B.pShow=true;B.pOff=-60;for(let i=0;i<15;i++){B.pOff+=4;await wait(1)}B.pOff=0;await bsay(`Go! ${mname(pm())}!`);B.pinfo=true;B.parts.add(pm());
+ let res=null;while(!res)res=await bturn();
+ if(res==='win'&&tr){playSong('victory');await say(`You defeated ${tr.name}!`);if(tr.lose)await say(tr.lose);if(tr.reward){P.bolts+=tr.reward;SFX.item();await say(`${tr.name} coughs up ${tr.reward} bolts.`)}}
+ if(res==='lose'){await say(`You're out of fighting mons...`)}
+ for(const m of all)delete m.st;for(const m of P.party)delete m.st;
+ await fadeOut();scene='ow';B=null;playSong(curMap.music);await fadeIn();return res}
+function plat(cx,cy,rx,ry,c){for(let dy=-ry;dy<=ry;dy++){const w=Math.round(rx*Math.sqrt(1-(dy/ry)*(dy/ry)));fill(c,cx-w,cy+dy,w*2,1)}}
+function drawBattle(){let sx=0;if(B.shake>0){B.shake--;sx=B.shake%4<2?2:-2}ctx.save();ctx.translate(sx,0);
+ fill(1,-4,0,168,144);for(let i=0;i<12;i++)fill(2,(i*37+FC/8)%170-5,(i*23)%90,2,1);
+ plat(128,44,28,5,2);plat(38,92,32,5,2);
+ const e=foe(),p=pm();
+ if(B.eShow&&!B.eHide){const y=6+B.eDrop;ctx.save();ctx.beginPath();ctx.rect(0,0,160,48);ctx.clip();ctx.drawImage(MSPR[e.sp].f,108+B.eOff-B.eLunge,y);ctx.restore()}
+ if(B.flashE>0){B.flashE--;plat(128,26,18,18,1)}
+ if(B.pShow&&!B.pHide){ctx.save();ctx.beginPath();ctx.rect(0,0,160,96);ctx.clip();ctx.drawImage(MSPR[p.sp].b,14+B.pOff+B.pLunge,54+B.pDrop);ctx.restore()}
+ if(B.jar)ctx.drawImage(OBJSPR.jar,B.jar.x+B.jar.s,B.jar.y);
+ if(B.info&&B.eShow){text(mname(e),6,4);text('Lv'+e.lv,6,13);if(e.status)text('SICK',40,13);text('HP',6,22);hpBar(20,23,56,B.dE,e.maxhp);fill(4,4,29,78,1);fill(4,4,20,1,10);
+  if(!B.tr&&P.caught[e.sp])text('\x03',70,13)}
+ if(B.pinfo&&B.pShow){text(mname(p),88,58);text('Lv'+p.lv,88,67);if(p.status)text('SICK',124,67);text('HP',88,76);hpBar(102,77,54,B.dP,p.maxhp);const hs=B.dP+'/'+p.maxhp;text(hs,156-hs.length*6,84);fill(4,82,93,76,1);fill(4,157,74,1,20)}
+ ctx.restore();if(!modals.length)box(0,96,160,48)}
+
+// ===== OVERWORLD ENGINE =====
+let P=null,flags={};let scene='title';let curMap=null;let busy=false,banner=null;
+const pl={x:0,y:0,dir:0,moving:false,mt:0,dx:0,dy:0,par:0,turn:0,walking:false};
+const DIRS=[[0,1],[0,-1],[-1,0],[1,0]];
+const PLAYER_LOOK={hat:'goggles',cloth:2,coat:3,hair:4,scarf:4};
+function newP(){return{name:'Kestrel',bg:'scav',stats:{GRIT:1,WITS:1,CHARM:1,SCAV:1,AIM:1},bolts:60,party:[],box:[],bag:{GAUZE:2},rep:{settlers:0,choir:0,scorch:-10},q:{main:0,doc:0,debt:0,mast:0},seen:{},caught:{},steps:0,time:0}}
+function tileAt(map,x,y){if(x<0||y<0||x>=map.w||y>=map.h)return map.border;const o=map.ov&&map.ov(x,y);return o||map.rows[y][x]}
+const npcsOf=m=>m.npcs.filter(n=>!n.cond||n.cond());
+const objsOf=m=>m.objs.filter(o=>!o.cond||o.cond());
+function npcAt(x,y){return npcsOf(curMap).find(n=>(n.x===x&&n.y===y)||(n.mv&&n.x+n.mv.dx===x&&n.y+n.mv.dy===y))}
+function objAt(x,y){return objsOf(curMap).find(o=>o.x===x&&o.y===y)}
+function warpAt(x,y){return curMap.warps.find(w=>w.x===x&&w.y===y)}
+function blocked(x,y){if(warpAt(x,y))return!!npcAt(x,y);if(x<0||y<0||x>=curMap.w||y>=curMap.h)return true;if(SOLID.has(tileAt(curMap,x,y)))return true;return!!(npcAt(x,y)||objAt(x,y))}
+function loadMap(id,x,y,dir){curMap=MAPS[id];pl.x=x;pl.y=y;if(dir!==undefined)pl.dir=dir;pl.moving=false;pl.walking=false;
+ for(const n of curMap.npcs){if(n.hx===undefined){n.hx=n.x;n.hy=n.y;n.hd=n.dir}n.x=n.hx;n.y=n.hy;n.dir=n.hd;n.mv=null;n.bang=0}
+ playSong(curMap.music);banner={t:110,name:curMap.name};flags['visit_'+id]=1}
+function runScript(fn){busy=true;pl.walking=false;Promise.resolve().then(fn).catch(e=>console.error(e)).finally(()=>{busy=false;pl.walking=false})}
+function npcStep(n,dir){return new Promise(r=>{const [dx,dy]=DIRS[dir];n.dir=dir;n.mv={dx,dy};n.mt=0;n.par=(n.par||0)^1;n.res=r})}
+function tickActors(){if(!curMap)return;for(const n of curMap.npcs){if(n.mv){n.mt+=2;if(n.mt>=16){n.x+=n.mv.dx;n.y+=n.mv.dy;n.mv=null;n.mt=0;if(n.res){const r=n.res;n.res=null;r()}}}
+ else if(n.wander&&!busy&&!modals.length&&scene==='ow'&&(!n.cond||n.cond())&&Math.random()<1/100){const d=rand(4);const [dx,dy]=DIRS[d];const nx=n.x+dx,ny=n.y+dy;n.dir=d;
+  if(Math.abs(nx-n.hx)<=2&&Math.abs(ny-n.hy)<=2&&!blocked(nx,ny)&&!(nx===pl.x&&ny===pl.y)&&!(pl.moving&&nx===pl.x+pl.dx&&ny===pl.y+pl.dy)&&!warpAt(nx,ny)){n.mv={dx,dy};n.mt=0;n.par=(n.par||0)^1}}}}
+function checkTrainers(){for(const n of npcsOf(curMap)){if(!n.trainer||!n.trainer.sight||flags['beat_'+n.id]||n.mv)continue;const [dx,dy]=DIRS[n.dir];
+ for(let i=1;i<=n.trainer.sight;i++){const x=n.x+dx*i,y=n.y+dy*i;if(x===pl.x&&y===pl.y)return n;if(SOLID.has(tileAt(curMap,x,y))||npcAt(x,y)||objAt(x,y))break}}return null}
+async function trainerSpotted(n){n.bang=1;tone(880,.1,'square',.3);tone(660,.15,'square',.3,.1);await wait(40);n.bang=0;
+ while(Math.abs(n.x-pl.x)+Math.abs(n.y-pl.y)>1)await npcStep(n,n.dir);pl.dir=[1,0,3,2][n.dir];await runTrainer(n)}
+async function runTrainer(n){const t=n.trainer;for(const l of [].concat(typeof t.intro==='function'?t.intro():t.intro))await say(`${n.name}: ${l}`);if(t.pre&&!(await t.pre(n)))return;
+ const team=t.team.map(([s,l])=>makeMon(s,l));const r=await battle(team,{name:n.name,lose:t.lose,reward:t.reward,boss:t.boss});
+ if(r==='win'){flags['beat_'+n.id]=1;if(t.after)await t.after(n)}else if(r==='lose')await blackout();if(r==='win')await evolveCheck()}
+async function doWarp(w){SFX.door();await fadeOut();loadMap(w.to,w.tx,w.ty,w.dir===undefined?pl.dir:w.dir);await fadeIn()}
+async function wildBattle(){const e=curMap.enc;const tot=e.table.reduce((s,r)=>s+r[3],0);let r=Math.random()*tot,row=e.table[0];for(const t of e.table){r-=t[3];if(r<=0){row=t;break}}
+ const m=makeMon(row[0],row[1]+rand(row[2]-row[1]+1));const res=await battle([m],null);if(res==='lose')await blackout();else await evolveCheck()}
+async function blackout(){await say(`${P.name} blacked out...`);await fadeOut();P.bolts=Math.floor(P.bolts/2);healAll();loadMap('town',16,7,1);await fadeIn();
+ await say('Doc Hollis: Dragged you in off the dust. Lost some bolts on the way. Your mons are patched up. Try not to die, yeah?')}
+async function evolveCheck(){for(const m of P.party){const s=SPECIES[m.sp];if(!s.evo||m.lv<s.evo[1]||m.hp<=0)continue;const from=m.sp,to=s.evo[0];const oldn=mname(m);
+ await say(`What? ${oldn} is mutating!`);await pushModal({t:0,update(){this.t++;if(this.t%Math.max(2,20-Math.floor(this.t/8))===0)tone(300+this.t*4,.05,'square',.2);if(this.t>150)this.done()},
+  draw(){fill(1,0,0,160,144);const k=Math.max(2,20-Math.floor(this.t/8));const sp=(Math.floor(this.t/k)%2)?to:from;ctx.drawImage(MSPR[sp].f,60,30);box(0,96,160,48);text('...!?',8,106)}});
+ m.sp=to;const d=calcStats(m);m.hp+=d;P.caught[to]=1;P.seen[to]=1;SFX.lvl();await pushModal({t:0,update(){this.t++;if(this.t>20&&(prs.a||prs.b))this.done()},draw(){fill(1,0,0,160,144);ctx.drawImage(MSPR[to].f,60,30);drawTextBox(wrap(`${oldn} mutated into ${SPECIES[to].n}!`),99,true)}})}}
+function onStepDone(){P.steps++;const w=warpAt(pl.x,pl.y);if(w){runScript(()=>doWarp(w));return}
+ const t=checkTrainers();if(t){runScript(()=>trainerSpotted(t));return}
+ if(curMap.onStep){const f=curMap.onStep(pl.x,pl.y);if(f){runScript(f);return}}
+ const tile=tileAt(curMap,pl.x,pl.y);if(curMap.enc&&curMap.enc.tiles.includes(tile)&&Math.random()<curMap.enc.rate&&P.party.some(m=>m.hp>0))runScript(wildBattle)}
+function tryInteract(){const [dx,dy]=DIRS[pl.dir];let fx=pl.x+dx,fy=pl.y+dy;if(tileAt(curMap,fx,fy)==='K'){fx+=dx;fy+=dy}
+ const n=npcAt(fx,fy);if(n&&!n.mv){runScript(async()=>{n.dir=[1,0,3,2][pl.dir];if(n.trainer&&!flags['beat_'+n.id]&&!n.talk)await runTrainer(n);else if(n.talk)await n.talk(n);else if(n.trainer)await say(`${n.name}: ${[].concat(n.trainer.post||'...')[0]}`)});return true}
+ const o=objAt(fx,fy);if(o){runScript(()=>objInteract(o));return true}
+ const ins=curMap.inspect&&curMap.inspect[fx+','+fy];if(ins){runScript(ins);return true}return false}
+const SCAVT=[['SCRAP',6],['WIRE',3],['GAUZE',2],['JAR',2],['$',3],['PURGE',1],['FUSE',1]];
+async function objInteract(o){if(o.type==='sign'){await say(o.text);return}
+ if(o.type==='scav'){if(flags['scav_'+o.id]){await say('Picked clean. Just dust and bottle glass.');return}flags['scav_'+o.id]=1;SFX.dice();
+  await say(pick(['You dig through the junk heap...','You rummage through the wreckage...','You pry open a rusted locker...']));
+  for(const [id,n] of (o.loot||[]))await getItem(id,n);
+  let extra=1+(P.stats.SCAV>=4?1:0)+(flags.scavTips?1:0);if(rand(6)+1+P.stats.SCAV>=8)extra++;
+  for(let i=0;i<extra;i++){const tot=SCAVT.reduce((s,r)=>s+r[1],0);let r=Math.random()*tot,id='SCRAP';for(const [k,w] of SCAVT){r-=w;if(r<=0){id=k;break}}
+   if(id==='$'){const b=5+rand(10)+P.stats.SCAV*3;P.bolts+=b;SFX.item();await say(`Found ${b} bolts!`)}else await getItem(id,id==='SCRAP'?1+rand(2):1)}
+  if(o.after)await o.after()}}
+function owUpdate(){
+ if(pl.moving){pl.mt+=2;if(pl.mt>=16){pl.x+=pl.dx;pl.y+=pl.dy;pl.moving=false;pl.mt=0;onStepDone();if(busy)return}else return}
+ if(prs.start){openStartMenu();return}
+ if(prs.a){if(tryInteract())return;if(prs.enter){openStartMenu();return}}
+ const d=(held.up||prs.up)?1:(held.down||prs.down)?0:(held.left||prs.left)?2:(held.right||prs.right)?3:-1;
+ if(d<0){pl.walking=false;pl.turn=0;return}
+ if(d!==pl.dir&&!pl.walking){pl.dir=d;pl.turn=4;return}
+ if(pl.turn>0){pl.turn--;return}
+ const [dx,dy]=DIRS[d];pl.dir=d;if(blocked(pl.x+dx,pl.y+dy)){if(!pl.bumpT||FC-pl.bumpT>18){SFX.bump();pl.bumpT=FC}pl.walking=false;return}
+ pl.moving=true;pl.walking=true;pl.dx=dx;pl.dy=dy;pl.mt=0;pl.par^=1}
+function drawOW(){const ox=pl.x*16+(pl.moving?pl.dx*pl.mt:0),oy=pl.y*16+(pl.moving?pl.dy*pl.mt:0);const cx=ox-64,cy=oy-64;
+ const tx0=Math.floor(cx/16),ty0=Math.floor(cy/16);const af=(FC>>5)&1;
+ for(let ty=ty0;ty<=ty0+9;ty++)for(let tx=tx0;tx<=tx0+10;tx++){const t=TILES[tileAt(curMap,tx,ty)]||TILES['#'];ctx.drawImage(t[af],tx*16-cx,ty*16-cy)}
+ for(const o of objsOf(curMap)){const s=o.type==='scav'?(flags['scav_'+o.id]?OBJSPR.looted:OBJSPR.pile):OBJSPR.sign;ctx.drawImage(s,o.x*16-cx,o.y*16-cy)}
+ const actors=npcsOf(curMap).map(n=>({x:n.x*16+(n.mv?n.mv.dx*n.mt:0),y:n.y*16+(n.mv?n.mv.dy*n.mt:0),spr:n._spr||(n._spr=personSpr(n.look)),dir:n.dir,fr:n.mv?(n.mt<8?1+(n.par||0):0):0,bang:n.bang,tx:n.x,ty:n.y,mv:n.mv}));
+ actors.push({x:ox,y:oy,spr:personSpr(PLAYER_LOOK),dir:pl.dir,fr:pl.moving?(pl.mt<8?1+pl.par:0):0,tx:pl.x,ty:pl.y,mv:pl.moving});
+ actors.sort((a,b)=>a.y-b.y);
+ for(const a of actors){const x=a.x-cx,y=a.y-cy;ctx.drawImage(a.spr[a.dir][a.fr],x,y-4);
+  if(!a.mv&&tileAt(curMap,a.tx,a.ty)==='v')ctx.drawImage(TILES.v[af],0,11,16,5,x,y+11,16,5);
+  if(a.bang)ctx.drawImage(OBJSPR.bang,x+5,y-14)}
+ if(banner&&banner.t>0){banner.t--;if(!modals.length){const w=banner.name.length*6+14;box(0,0,w,18);text(banner.name,7,5)}}}
+// ----- menus
+function openStartMenu(){SFX.sel();runScript(async()=>{let idx=0;while(true){
+ const c=await choose(['MONS','BAG','JOURNAL',P.name.slice(0,8).toUpperCase(),'SAVE','SOUND:'+(muted?'OFF':'ON'),'EXIT'],{cancel:true,x:86,y:0,w:74,idx,vis:7});
+ if(c<0||c===6)break;idx=c;if(c===0)await partyMenu();if(c===1)await bagMenu();if(c===2)await journal();if(c===3)await statusScreen();
+ if(c===4){if(await yesno('Save your progress?')){saveGame();SFX.ok();await say(`${P.name} scratched the day's tally into the save-slate.`)}}if(c===5)muted=!muted}})}
+async function partyMenu(){let i=0;while(true){i=await partyScreen({msg:'Choose a mon.',idx:i});if(i<0)return;const o=await choose(['STATS','SWITCH','CANCEL'],{cancel:true});
+ if(o===0)await monSummary(P.party[i]);if(o===1){const j=await partyScreen({msg:'Move to which slot?',idx:i});if(j>=0&&j!==i){const t=P.party[i];P.party[i]=P.party[j];P.party[j]=t;SFX.ok()}}}}
+async function bagMenu(){let idx=0;while(true){const ids=Object.keys(P.bag).filter(k=>P.bag[k]>0);const items=[{l:'> Craft...',d:'Build capture devices and medicine from scavenged parts.'}].concat(ids.map(k=>({l:ITEMS[k].n,r:ITEMS[k].key?'KEY':'x'+P.bag[k],d:ITEMS[k].d})));
+ const i=await listMenu({title:'BAG',sub:P.bolts+'b',items,idx});if(i<0)return;idx=i;if(i===0){await craftMenu();continue}const id=ids[i-1],it=ITEMS[id];
+ if(it.heal||it.cure||it.revive){const t=await partyScreen({msg:`Use ${it.n} on which mon?`});if(t<0)continue;if(!canUse(it,P.party[t])){await say("It won't have any effect.");continue}take(id);await applyItem(it,P.party[t])}
+ else if(it.cap)await say('Capture devices are thrown during wild battles.');else await say(it.d)}}
+async function craftMenu(){let idx=0;while(true){const items=RECIPES.map(r=>{const ok=Object.entries(r.req).every(([k,n])=>has(k,n));return{l:ITEMS[r.out].n+(r.n>1?' x'+r.n:''),r:ok?'OK':'--',dim:!ok,d:'Needs: '+Object.entries(r.req).map(([k,n])=>`${ITEMS[k].n} x${n} (${P.bag[k]||0})`).join(', ')}});
+ const i=await listMenu({title:'CRAFT',items,idx});if(i<0)return;idx=i;const r=RECIPES[i];if(!Object.entries(r.req).every(([k,n])=>has(k,n))){SFX.no();await say("You don't have the parts.");continue}
+ for(const [k,n] of Object.entries(r.req))take(k,n);tone(200,.05);tone(300,.05,'square',.2,.08);await getItem(r.out,r.n)}}
+async function journal(){let idx=0;while(true){const items=QUESTS.filter(q=>P.q[q.id]>0).map(q=>({l:q.n,r:P.q[q.id]>=q.done?'DONE':'',dim:P.q[q.id]>=q.done,d:q.text()}));
+ const i=await listMenu({title:'JOURNAL',items,idx});if(i<0)return;idx=i;await say(items[i].d)}}
+function statusScreen(){return pushModal({update(){if(prs.a||prs.b){SFX.sel();this.done()}},draw(){fill(1,0,0,160,144);box(0,0,160,144);ctx.drawImage(personSpr(PLAYER_LOOK)[0][0],136,6);
+ text(P.name,8,7);text(BGS.find(b=>b.id===P.bg).n,8,17,3);STATS.forEach((s,i)=>{text(s,8,30+i*10);text(String(P.stats[s]),50,30+i*10);for(let k=0;k<P.stats[s];k++)fill(3,60+k*6,31+i*10,4,6)});
+ text('BOLTS '+P.bolts,8,84);text('CAUGHT '+Object.keys(P.caught).length+'/'+Object.keys(SPECIES).length,8,94);
+ fill(4,6,105,148,1);[['Rustwater','settlers'],['Iron Choir','choir'],['Scorch Gang','scorch']].forEach(([n,k],i)=>{text(n,8,109+i*10);text(REPN(P.rep[k]),152-REPN(P.rep[k]).length*6,109+i*10)})}})}
+function priceMul(){let m=1.2-.05*P.stats.CHARM;if(flags.tradeDeal)m-=.1;if(flags.ending==='choir')m+=.25;if(flags.ending==='settlers')m-=.1;return Math.max(.6,m)}
+async function shop(stock){while(true){const c=await choose(['BUY','SELL','LEAVE'],{prompt:'Brass: What are you after?',cancel:true});if(c<0||c===2)return;
+ if(c===0){let idx=0;while(true){const items=stock.map(k=>({l:ITEMS[k].n,r:Math.ceil(ITEMS[k].price*priceMul())+'b',d:ITEMS[k].d}));const i=await listMenu({title:'BUY',sub:P.bolts+'b',items,idx});if(i<0)break;idx=i;
+  const pr=Math.ceil(ITEMS[stock[i]].price*priceMul());const mx=Math.floor(P.bolts/pr);if(mx<1){SFX.no();await say("Brass: You're short on bolts, friend.");continue}const n=await pickQty(Math.min(mx,99),pr);if(!n)continue;P.bolts-=n*pr;give(stock[i],n);SFX.item();await say(`Bought ${ITEMS[stock[i]].n} x${n}.`)}}
+ if(c===1){let idx=0;while(true){const ids=Object.keys(P.bag).filter(k=>P.bag[k]>0&&!ITEMS[k].key);const items=ids.map(k=>({l:ITEMS[k].n,r:Math.floor(ITEMS[k].price/2)+'b x'+P.bag[k],d:ITEMS[k].d}));
+  const i=await listMenu({title:'SELL',sub:P.bolts+'b',items,idx});if(i<0)break;idx=i;const id=ids[i];const pr=Math.max(1,Math.floor(ITEMS[id].price/2));const n=await pickQty(P.bag[id],pr);if(!n)continue;take(id,n);P.bolts+=n*pr;SFX.item();await say(`Sold for ${n*pr} bolts.`)}}}}
+async function crateMenu(){while(true){const c=await choose(['TAKE OUT','PUT IN','LEAVE'],{prompt:`Pell's crate holds ${P.box.length} mon${P.box.length===1?'':'s'}.`,cancel:true});if(c<0||c===2)return;
+ if(c===0){if(!P.box.length){await say('The crate is empty.');continue}if(P.party.length>=6){await say('Your party is full. Put one in first.');continue}
+  const i=await listMenu({title:'CRATE',items:P.box.map(m=>({l:mname(m),r:'Lv'+m.lv,d:SPECIES[m.sp].d}))});if(i<0)continue;P.party.push(P.box.splice(i,1)[0]);SFX.ok()}
+ if(c===1){if(P.party.length<=1){await say('You need to keep at least one mon.');continue}const i=await partyScreen({msg:'Put which mon in the crate?'});if(i<0)continue;P.box.push(P.party.splice(i,1)[0]);SFX.ok()}}}
+// ----- save / load
+const SAVEKEY='dustbound_save_v1';
+function saveGame(){try{localStorage.setItem(SAVEKEY,JSON.stringify({P,flags,map:curMap.id,x:pl.x,y:pl.y,dir:pl.dir}));return true}catch(e){return false}}
+function hasSave(){try{return!!localStorage.getItem(SAVEKEY)}catch(e){return false}}
+function loadGame(){try{const d=JSON.parse(localStorage.getItem(SAVEKEY));P=d.P;flags=d.flags||{};loadMap(d.map,d.x,d.y,d.dir);return true}catch(e){console.error(e);return false}}
+
+// ===== STORY: maps, NPCs, quests, scripts =====
+const QUESTS=[
+ {id:'main',n:'The Last Drop',done:4,text:()=>({1:'Recover the Purifier Core from King Axlegrind in Scorch Fort, east past the Ashfields.',2:'You are inside Scorch Fort. Find King Axlegrind and take back the Purifier Core.',
+  3:'You hold the Purifier Core. Return it to Mayor Ottilie'+(flags.choirOffer?', or sell it to Sister Cathode in the bar':'')+(flags.axleOffer?', or bring it to Axlegrind':'')+'.',4:ENDTXT[flags.ending]||''})[P.q.main]||''},
+ {id:'doc',n:'Glow in the Dark',done:2,text:()=>P.q.doc>=2?'You brought Doc Hollis 3 Glowcaps. Healing at the clinic is free for you now.':`Find 3 Glowcaps in Ashfields junk piles for Doc Hollis. (${Math.min(3,P.bag.GLOWCAP||0)}/3)`},
+ {id:'debt',n:'Bad Debt',done:3,text:()=>({1:'Collect the 60 bolts Skint owes Mags. He hides in the south-east Ashfields.',2:flags.debtPaid?"You have Skint's 60 bolts. Bring them to Mags.":'You let Skint walk. Now tell Mags... something.',3:'Settled: '+flags.debtEnd})[P.q.debt]||''},
+ {id:'mast',n:'Choir Signal',done:2,text:()=>P.q.mast>=2?'The Ashfields relay mast sings again. The Iron Choir is pleased.':(flags.mastFixed?'The mast is fixed. Report to Sister Cathode.':'Repair the relay mast in the north-east Ashfields for Sister Cathode. A Signal Coil, or some copper wire, would help.')}];
+const ENDTXT={settlers:'You returned the Core to Rustwater. Clean water flows for all.',choir:'You sold the Core to the Iron Choir. Water now has a price.',scorch:'You gave the Core to King Axlegrind. The Scorch Gang owns the water.'};
+const L={brass:{hat:'cap',hatc:3,cloth:2,beard:3},doc:{hat:'bald',coat:1,cloth:3,hair:3},ottilie:{long:true,hair:3,cloth:3,scarf:2},pell:{hat:'cap',hatc:2,beard:1,cloth:3},pip:{hair:4,cloth:1},
+ hask:{hat:'helm',cloth:3,coat:3},nell:{long:true,hair:2,cloth:2},mags:{long:true,hair:4,cloth:3,scarf:1},cathode:{hat:'hood',hatc:4,coat:4,cloth:2},tally:{hat:'bald',beard:2,cloth:2},
+ mo:{hat:'cap',hatc:4,cloth:1},raidA:{hat:'mohawk',cloth:3,scarf:4},raidB:{hat:'helm',cloth:4,coat:3},skint:{hat:'hood',hatc:2,cloth:2},dorrie:{hat:'goggles',long:true,hair:3,cloth:2},
+ knuckles:{hat:'helm',coat:4,cloth:3},axle:{hat:'helm',hatc:4,coat:4,cloth:2,beard:4}};
+async function healScene(who){await say(`${who}: Hold still, critters...`);SFX.heal();await fadeOut();healAll();await wait(30);await fadeIn();await say('Your mons are patched up and full of fight!')}
+async function giveMon(sp,lv,txt){const m=makeMon(sp,lv,true);P.caught[sp]=1;P.seen[sp]=1;SFX.catch();await say(txt||`You received ${SPECIES[sp].n}!`);if(P.party.length<6)P.party.push(m);else{P.box.push(m);await say(`It was sent to Pell's crate.`)}}
+async function epilogue(){const E=flags.ending;const lines=[];
+ if(E==='settlers')lines.push('The Still coughs, shudders, and runs clear.','Rustwater drinks deep for the first time in weeks.','Ottilie carves your name over the well.');
+ if(E==='choir')lines.push('The Choir installs the Core in their spire.','Rustwater still drinks... at two bolts a cup.','Sister Cathode sings your name in her hymns.');
+ if(E==='scorch')lines.push('King Axlegrind bolts the Core to his throne.','Every drop in the Ashlands now flows through Scorch Fort.','You ride at his right hand, feared and thirsty no more.');
+ lines.push('');lines.push(P.q.doc>=2?'Doc Hollis brews glowcap tonic for every child in town.':'Doc Hollis still waits on his glowcaps.');
+ lines.push(P.q.debt>=3?('Mags: '+flags.debtEnd):'Skint still owes Mags 60 bolts.');lines.push(P.q.mast>=2?'The Choir relay hums psalms across the dunes.':'The Choir mast stands silent.');
+ lines.push('','Rustwater: '+REPN(P.rep.settlers),'Iron Choir: '+REPN(P.rep.choir),'Scorch Gang: '+REPN(P.rep.scorch),'','Mons caught: '+Object.keys(P.caught).length+'/'+Object.keys(SPECIES).length,'','THE END... for now.','The wastes are still out there.');
+ const all=[];lines.forEach(l=>{if(!l)all.push('');else all.push(...wrap(l,24))});playSong('victory');
+ await pushModal({t:0,update(){this.t+=0.4;if(prs.a)this.t+=2;if(this.t>all.length*12+150&&(prs.a||prs.b))this.done()},
+  draw(){fill(4,0,0,160,144);all.forEach((l,i)=>{const y=150+i*12-this.t;if(y>-10&&y<150)text(l,8,y,1)});if(this.t>all.length*12+150)textC('Press A',80,130,2)}});playSong(curMap.music)}
+async function endingSettlers(){take('CORE');P.q.main=4;flags.ending='settlers';SFX.lvl();await say('Ottilie: You actually did it. Rustwater owes you its life.');await rep('settlers',30);
+ await bolts(flags.mayorReward||100);await giveMon('CHROMEFANG',12,'Ottilie: Pell found this chrome pup in the ruins. It chose you. You received Chromefang!');await epilogue()}
+async function endingChoir(){take('CORE');P.q.main=4;flags.ending='choir';await say('Cathode: The Machine-Saints smile. Their gift returns to worthy hands.');await rep('choir',30);await rep('settlers',-40);
+ await bolts(flags.choirBonus?400:300);await getItem('TESLA',3);await epilogue()}
+async function endingScorch(){take('CORE');P.q.main=4;flags.ending='scorch';await say('Axlegrind: HA! I knew you had rust in your veins. Welcome to the table, lieutenant.');await rep('scorch',40);await rep('settlers',-50);await rep('choir',-20);
+ await bolts(150);await giveMon('TWINHOG',12,'Axlegrind: Take my second-best hog. You received Twinhog!');await epilogue()}
+async function openGate(){flags.gateOpen=1;SFX.door();tone(90,.4,'sawtooth',.3);await say('The gate grinds open with a screech of metal.')}
+const MAPS={
+ town:{id:'town',name:'RUSTWATER',music:'town',border:'#',enc:null,rows:[
+ "######################",
+ "#RRRRR...T....RRRRRR.#",
+ "#HWdWH........HWWDWH.#",
+ "#.QQQQ..,.....,......#",
+ "#.Q__Q...YyY...NNNN..#",
+ "#.KKKK.........N__N..#",
+ "#..........S...KKKK..#",
+ "#....,...............#",
+ "#T.......,......B....#",
+ "#..B.......,.........=",
+ "#=====================",
+ "#.......,.....,......=",
+ "#RRRR..........FFFFF.#",
+ "#HWdH..T.......F,,,F.#",
+ "#..............F...F.#",
+ "#..B...,.......FF.FF.#",
+ "#........T...........#",
+ "######################"],
+ warps:[{x:21,y:9,to:'ash',tx:1,ty:9},{x:21,y:10,to:'ash',tx:1,ty:10},{x:21,y:11,to:'ash',tx:1,ty:11},{x:17,y:2,to:'bar',tx:5,ty:7,dir:1}],
+ objs:[],
+ inspect:{
+  '3,2':async()=>{if(await yesno('Your bunk in Pell\'s shack. Rest a while?')){await fadeOut();healAll();SFX.heal();await wait(40);await fadeIn();await say('You and your mons feel rested.')}},
+  '3,13':async()=>say("Ottilie's office. Locked. A note: 'At the Still. -O'"),
+  '11,6':async()=>say('RUSTWATER - Pop. 61. Clean water, fair trade, no raiders. East: the Ashfields.'),
+  '9,4':async()=>stillTxt(),'10,4':async()=>stillTxt(),'11,4':async()=>stillTxt()},
+ npcs:[
+  {id:'ottilie',name:'Ottilie',x:10,y:5,dir:0,look:L.ottilie,talk:talkOttilie},
+  {id:'brass',name:'Brass',x:3,y:4,dir:0,look:L.brass,talk:talkBrass},
+  {id:'doc',name:'Doc Hollis',x:16,y:5,dir:0,look:L.doc,talk:talkDoc},
+  {id:'pell',name:'Old Pell',x:17,y:14,dir:0,look:L.pell,talk:talkPell},
+  {id:'pip',name:'Pip',x:6,y:8,dir:0,look:L.pip,wander:true,talk:talkPip},
+  {id:'hask',name:'Warden Hask',x:20,y:8,dir:2,look:L.hask,talk:talkHask},
+  {id:'nell',name:'Nell',x:7,y:14,dir:0,look:L.nell,wander:true,talk:talkNell}]},
+ bar:{id:'bar',name:'THE RUSTY CUP',music:'town',border:'P',enc:null,rows:[
+ "PPPPPPPPPPPP",
+ "P_____B____P",
+ "PKKKK______P",
+ "P______h___P",
+ "P_hOh___hOhP",
+ "P______h___P",
+ "P_hOh______P",
+ "P__________P",
+ "PPPPPEPPPPPP"],
+ warps:[{x:5,y:8,to:'town',tx:17,ty:3,dir:0}],objs:[],inspect:{},
+ npcs:[{id:'mags',name:'Mags',x:2,y:1,dir:0,look:L.mags,talk:talkMags},
+  {id:'cathode',name:'Sister Cathode',x:10,y:4,dir:2,look:L.cathode,talk:talkCathode},
+  {id:'tally',name:'Old Tally',x:2,y:4,dir:3,look:L.tally,talk:talkTally},
+  {id:'mo',name:'Dice Mo',x:4,y:6,dir:3,look:L.mo,talk:talkMo}]},
+ ash:{id:'ash',name:'THE ASHFIELDS',music:'wild',border:'#',enc:{tiles:'v',rate:.12,table:[['DUSTRAT',3,5,30],['BONEBEAK',3,6,18],['SPARKBUG',3,6,16],['GEIGERMOTH',4,6,12],['BLIGHTOAD',4,6,12],['GLOWROACH',3,5,14],['TINJAW',4,6,10]]},rows:[
+ "################################",
+ "#vvvv....T.....Cc...##..vvvvv..#",
+ "#vvvv.......,.......##..vvvvv..#",
+ "#..vv...##.....T.........vvv...#",
+ "#.......##...vvvv.....Cc.......#",
+ "#..Cc........vvvv...........A..#",
+ "#...........vvvvv....~~~~......#",
+ "#....T.......vvv....~~~~~~..,..#",
+ "#......,.............~~~~......#",
+ "=..............................=",
+ "================================",
+ "=..............................=",
+ "#.....vvvv.....Cc......#####...#",
+ "#..T..vvvvvv.........vv#...#...#",
+ "#.....vvvvvv...##....vvv..,#...#",
+ "#......vvvv....##...vvvvv......#",
+ "#..Cc...........T...vvvvv..Cc..#",
+ "#...,......vvv.......vvv.......#",
+ "#.........vvvvv..........T.....#",
+ "################################"],
+ warps:[0,1,2].map(i=>({x:0,y:9+i,to:'town',tx:20,ty:9+i})).concat([0,1,2].map(i=>({x:31,y:9+i,to:'fort',tx:1,ty:9+i}))),
+ objs:[{type:'sign',x:2,y:8,text:"ASHFIELDS. West: Rustwater. East: Scorch Fort. Someone scrawled 'TURN BACK' in red paint."},
+  {type:'scav',id:'a1',x:11,y:3,loot:[['GLOWCAP',1]]},{type:'scav',id:'a2',x:25,y:13,loot:[['GLOWCAP',1]]},{type:'scav',id:'a3',x:20,y:18,loot:[['GLOWCAP',1]]},
+  {type:'scav',id:'a4',x:30,y:1,loot:[['WIRE',1]]},{type:'scav',id:'a5',x:2,y:17},{type:'scav',id:'a6',x:16,y:8,loot:[['JAR',1]]}],
+ inspect:{'28,5':talkMast},
+ npcs:[{id:'dorrie',name:'Scav Dorrie',x:4,y:8,dir:0,look:L.dorrie,talk:talkDorrie,trainer:{team:[['GLOWROACH',5],['BLIGHTOAD',6]],intro:["Let's see what you've got!"],lose:"Dorrie: Ha! Not bad, greenhorn.",reward:40}},
+  {id:'spitz',name:'Raider Spitz',x:5,y:13,dir:3,look:L.raidA,trainer:{sight:5,team:[['DUSTRAT',4],['BONEBEAK',5]],intro:()=>P.bg==='raider'?['Hey... that brand on your arm. A deserter! Get em!']:['Fresh meat in the grass! Your bolts are mine!'],lose:'Spitz: Rust and ruin! Fine, take it.',reward:45,post:'Spitz: Axlegrind will grind you to paste.'}},
+  {id:'vex',name:'Raider Vex',x:19,y:5,dir:0,look:L.raidB,trainer:{sight:4,team:[['SPARKBUG',5],['TINJAW',6]],intro:['Road toll, drifter. Pay in blood!'],lose:"Vex: Tch. The King'll hear of this.",reward:55,post:'Vex: Scorch Fort is east. Not that you will survive it.'}},
+  {id:'gutter',name:'Raider Gutter',x:14,y:16,dir:1,look:L.raidA,trainer:{sight:3,team:[['BLIGHTOAD',6],['GEIGERMOTH',6]],intro:['I been waiting all day to hurt someone!'],lose:'Gutter: My boils... they burn...',reward:55,post:'Gutter: Leave me alone.'}},
+  {id:'skint',name:'Skint',x:26,y:15,dir:2,look:L.skint,talk:talkSkint,trainer:{team:[['TINJAW',6],['DUSTRAT',7]],intro:["Fine! I'm not going quietly!"],lose:"Skint: Okay, okay! Uncle!",reward:0}}]},
+ fort:{id:'fort',name:'SCORCH FORT',music:'fort',border:'#',enc:{tiles:':',rate:.12,table:[['TWINHOG',7,10,20],['WIREWYRM',7,10,18],['TINJAW',8,10,16],['GEIGERMOTH',8,10,14],['BLIGHTOAD',8,10,14],['BONEBEAK',8,10,14],['CHROMEFANG',9,10,3]]},rows:[
+ "########################",
+ "#.....^^^^^^^^^^^^^^^^.#",
+ "#.::..^MMMMMMMMMMMMMM^.#",
+ "#.::..^MMMMBMMMMBMMMM^.#",
+ "#.....^MMMMMMMMMMMMMM^.#",
+ "#..::.^MMMMMMMMMMMMMM^.#",
+ "#.:::.^MMBMMMMMMMMBMM^.#",
+ "#.::..^MMMMMMMMMMMMMM^.#",
+ "#.....^^^^^^^G^^^^^^^^.#",
+ "=......................#",
+ "=........::::..........#",
+ "=.......::::::.....Cc..#",
+ "#..T....::::::.........#",
+ "#.......:::::....::::..#",
+ "#..Cc.......T...:::::..#",
+ "#.......F.......::::...#",
+ "#..::.......Cc.........#",
+ "#.::::..T..........T...#",
+ "#......................#",
+ "########################"],
+ ov:(x,y)=>(x===13&&y===8&&flags.gateOpen)?'g':(x===21&&y===5&&flags.fortGap)?'w':null,
+ warps:[0,1,2].map(i=>({x:0,y:9+i,to:'ash',tx:30,ty:9+i})),
+ onStep:(x,y)=>(y<=7&&x>=7&&x<=20&&P.q.main<2&&!flags.fortIn)?(async()=>{flags.fortIn=1;if(P.q.main<2)P.q.main=2;await say('Inside Scorch Fort. The air stinks of burnt fuel and worse.')}):null,
+ objs:[{type:'sign',x:10,y:9,text:'SCORCH FORT. TRESPASSERS BECOME DECORATIONS.'},{type:'scav',id:'f1',x:8,y:2,loot:[['FUSE',1]]},{type:'scav',id:'f2',x:19,y:6,loot:[['COIL',1]]},
+  {type:'scav',id:'f3',x:2,y:15,loot:[['TONIC',1]]},{type:'scav',id:'f4',x:21,y:17}],
+ inspect:{'21,5':talkGap},
+ npcs:[{id:'knuckles',name:'Knuckles',x:13,y:9,dir:0,look:L.knuckles,cond:()=>!flags.gateOpen,talk:talkKnuckles,trainer:{team:[['TWINHOG',8],['TINJAW',9]],intro:['Your funeral.'],lose:'Knuckles: Ugh... go on, then.',reward:60}},
+  {id:'knuckles2',name:'Knuckles',x:11,y:9,dir:3,look:L.knuckles,cond:()=>!!flags.gateOpen,talk:async()=>say("Knuckles: Gate's open. Don't make me regret it.")},
+  {id:'mira',name:'Raider Mira',x:9,y:5,dir:3,look:L.raidB,trainer:{sight:4,team:[['WIREWYRM',9],['BONEBEAK',9]],intro:['Intruder! The King wants your skin for a seat cover!'],lose:'Mira: Gah! Sparks everywhere...',reward:80,post:'Mira: The King will finish you.'}},
+  {id:'grub',name:'Raider Grub',x:18,y:4,dir:2,look:L.raidA,trainer:{sight:4,team:[['BLIGHTOAD',9],['GEIGERMOTH',10]],intro:['Nobody gets to the King. NOBODY.'],lose:'Grub: ...Except you, I guess.',reward:80,post:'Grub: Go on. He bites.'}},
+  {id:'axle',name:'King Axlegrind',x:13,y:2,dir:0,look:L.axle,talk:talkAxle}]}
+};
+for(const k in MAPS){const m=MAPS[k];m.h=m.rows.length;m.w=m.rows[0].length;m.rows.forEach((r,i)=>{if(r.length!==m.w)console.error('row width',k,i,r.length)})}
+async function stillTxt(){if(flags.ending==='settlers')await say('The Still hums happily. Clean water trickles into the town trough.');else if(flags.ending)await say('The Still sits gutted and silent. A hollow where its heart should be.');
+ else await say('The Still: a rust-streaked water purifier. Its core housing has been ripped open.')}
+// ----- TOWN
+async function talkOttilie(){const q=P.q.main;
+ if(q===0){await say("Ottilie: You're the drifter Pell took in. Look at this. Look at it!");await say('Ottilie: The Still. Our purifier. Three nights ago the Scorch Gang ripped out its Purifier Core and rode east.');
+  await say('Ottilie: Without it, Rustwater has two weeks of clean water. Then we drink sludge... or we die.');let deal=100;
+  while(true){const r=await dlg('Ottilie: Will you get the Core back from King Axlegrind?',[{k:'yes',t:"I'll get it back."},{k:'pay',t:"What's it pay?",if:!flags.mayorAsk},
+   {k:'charm',t:'Pay me more.',st:'CHARM',dc:3,id:'may_ch'},{k:'scav',t:'Build one?',bg:'scav'},{k:'hag',t:'Haggle.',bg:'caravan',if:deal<175},{k:'no',t:'Not my problem.'}]);
+   if(r.k==='pay'){flags.mayorAsk=1;await say("Ottilie: 100 bolts. It's all the town can scrape together.")}
+   if(r.k==='charm'){if(r.ok){deal=200;await say('Ottilie: ...Fine. 200 bolts, and Rustwater owes you a favor.')}else await say("Ottilie: Don't push it, drifter. People here are dying.")}
+   if(r.k==='scav')await say("Ottilie: It's pre-Fall tech. Nobody can build one. Except maybe the Iron Choir, and they don't share.");
+   if(r.k==='hag'){deal=175;await say('Ottilie: You talk like a caravan boss. 175, and not a bolt more.')}
+   if(r.k==='no'){await say('Ottilie: Then enjoy the dust while it lasts.');return}
+   if(r.k==='yes'){P.q.main=1;flags.mayorReward=deal;SFX.item();await say(`Ottilie: Bless you. ${deal} bolts when the Core is back in the Still.`);await say('Ottilie: Scorch Fort is east, past the Ashfields. The road is crawling with raiders and mutants. Heal up at Doc Hollis first.');
+    await say('[New quest: The Last Drop]');await rep('settlers',5);return}}}
+ if(q===1||q===2){await say('Ottilie: Scorch Fort is east, past the Ashfields. Please hurry. The barrels are getting low.');return}
+ if(q===3){const r=await dlg('Ottilie: Is that... you have it! The Purifier Core!',[{k:'give',t:"Here. It's yours."},{k:'wait',t:'Not yet.'}]);
+  if(r.k==='give')await endingSettlers();else await say("Ottilie: Not yet? ...What does that mean?");return}
+ if(flags.ending==='settlers')await say('Ottilie: Hear that gurgle? That is the sound of a town that gets to live. Thanks to you.');
+ else if(flags.ending==='choir')await say('Ottilie: Two bolts a cup. That is what the Choir charges us now. I hope their coin keeps you warm.');
+ else await say("Ottilie: Get out of my sight, raider. Axlegrind's dog.")}
+async function talkBrass(){const stock=['GAUZE','TONIC','PURGE','SALTS','JAR','CAGE','WIRE','SCRAP'];if(P.rep.choir>=20)stock.push('TESLA');
+ while(true){const r=await dlg(flags.ending==='choir'?'Brass: Prices went up. Water costs now, so everything costs.':'Brass: Scrap, meds, jars. Buy, sell, or browse.',[
+  {k:'trade',t:'Trade.'},{k:'scav',t:'Talk shop.',bg:'scav',if:!flags.tradeDeal},{k:'car',t:'Road tales.',bg:'caravan',if:!flags.tradeDeal},
+  {k:'ch',t:'Any specials?',st:'CHARM',dc:4,id:'brass_ch'},{k:'rum',t:'Heard anything?'},{k:'bye',t:'Bye.'}]);
+  if(r.k==='trade')await shop(stock);
+  if(r.k==='scav'||r.k==='car'){flags.tradeDeal=1;await say(r.k==='scav'?"Brass: A fellow junk-diver! You know a fused coil from a dud. I'll give you the insider rate.":"Brass: Ha! Ran the salt road too, eh? Insider rate for you, friend.");SFX.item();await say('[Trader prices -10%]')}
+  if(r.k==='ch'){if(r.ok){await say("Brass: Fine, fine. Take this Cage Can. Don't tell the others.");await getItem('CAGE',1)}else await say('Brass: Specials? Everything is special. Special price, too.')}
+  if(r.k==='rum')await say(pick(["Brass: Dice Mo in the bar cheats. Everybody knows. Nobody can prove it.","Brass: Combine 2 Scrap and a Copper Wire and you got yourself a Snare Jar. Check your BAG's craft menu.","Brass: The Iron Choir pays big for pre-Fall tech. Too big. Makes you wonder."]));
+  if(r.k==='bye'||r.k===undefined){await say('Brass: Keep your boots dry.');return}}}
+async function talkDoc(){const free=P.q.doc>=2||P.rep.settlers>=30||flags.ending==='settlers';const cost=flags.ending==='choir'?20:10;
+ while(true){const r=await dlg('Doc Hollis: Clinic is open. What hurts?',[{k:'heal',t:free?'Heal my mons. (free)':`Heal my mons. (${cost}b)`},{k:'q',t:'Need anything?',if:P.q.doc===0},
+  {k:'give',t:'Got your Glowcaps.',if:P.q.doc===1&&has('GLOWCAP',3)},{k:'nov',t:'Choir meds?',bg:'choir'},{k:'bye',t:'Bye.'}]);
+  if(r.k==='heal'){if(!free){if(P.bolts>=cost)P.bolts-=cost;else await say("Doc Hollis: Broke? ...Fine. On the house. Again.")}await healScene('Doc Hollis');return}
+  if(r.k==='q'){await say('Doc Hollis: Glowcaps. Fungus that grows in the junk heaps out in the Ashfields. I brew them into medicine.');await say('Doc Hollis: Bring me 3 and I will make it worth your while. Healing here, free, for life.');P.q.doc=1;await say('[New quest: Glow in the Dark]')}
+  if(r.k==='give'){take('GLOWCAP',3);P.q.doc=2;await say('Doc Hollis: Beautiful. These will keep the kids breathing through dust season.');await getItem('TONIC',2);await getItem('SALTS',1);await rep('settlers',10);await say('[Quest complete: Glow in the Dark]')}
+  if(r.k==='nov')await say("Doc Hollis: The Choir? They hoard antibiotics in that spire and call it 'stewardship'. You'd know, novice. You ran.");
+  if(r.k==='bye')return}}
+async function talkPell(){if(!flags.pellTalk){flags.pellTalk=1;await say("Old Pell: There's my newest wrangler! How's the little one treating you?")}
+ while(true){const r=await dlg('Old Pell: Need the crate? It holds any mons you snare past six.',[{k:'crate',t:'Open the crate.'},{k:'tip',t:'Wrangling tips?'},{k:'bye',t:'Bye.'}]);
+  if(r.k==='crate')await crateMenu();if(r.k==='tip')await say(pick(['Old Pell: Wear a mon down first. A weak, SICK mon is easier to jar.','Old Pell: Got a good arm? AIM makes your throws land true.','Old Pell: Starters mutate around level 14. Keep yours fighting!','Old Pell: A Cage Can beats a Snare Jar. A Tesla Trap beats them both.']));
+  if(r.k==='bye')return}}
+async function talkPip(){await say(pick(['Pip: RUST beats RAD! RAD beats TOXIC! TOXIC beats RUST! I memorized it!','Pip: VOLT fries RUST and TOXIC. But FERAL mons bite right through VOLT.','Pip: The tall glowing grass is where the mutants hide. Mom says stay out.','Pip: Press SHIFT or ENTER for your menu. Everybody knows that.','Pip: I saw a shiny chrome wolf near Scorch Fort once! Nobody believes me.']))}
+async function talkHask(){if(P.bg==='raider'&&!flags.hask){const r=await dlg("Hask: Hold it. That's a Scorch brand on your arm. Give me one reason not to run you out.",[
+  {k:'c',t:"I've changed.",st:'CHARM',dc:3,id:'hask_c'},{k:'g',t:'Try it.',st:'GRIT',dc:4,id:'hask_g'},{k:'w',t:'(Walk away)'}]);flags.hask=1;
+  if(r.k==='c'){if(r.ok){await say("Hask: ...Alright. Everyone deserves a second shot. Don't waste it.");await rep('settlers',5)}else{await say("Hask: Words are cheap. I'm watching you.");await rep('settlers',-5)}}
+  if(r.k==='g'){if(r.ok){await say("Hask: ...Fine. Just keep it clean in my town.")}else{await say('Hask: Big talk. Everyone heard that.');await rep('settlers',-5)}}return}
+ await say(P.q.main>=4&&flags.ending==='scorch'?"Hask: You've got a lot of nerve showing your face here.":'Hask: East road leads to the Ashfields. Raiders watch the road. Rad grass hides mutants. Keep your mons healthy.')}
+async function talkNell(){if(!flags.nell){const r=await dlg("Nell: My water filter's clogged again. Can't afford Brass's prices.",[{k:'s',t:'Let me fix it.',st:'SCAV',dc:3,id:'nell_s'},{k:'n',t:'Good luck.'}]);
+  if(r.k==='s'){flags.nell=1;if(r.ok){await say('You clear the gunk and re-seat the mesh. It runs clean!');await say('Nell: You angel! Take these.');await getItem('GAUZE',2);await rep('settlers',3)}else await say('You poke at it... and snap the intake. Nell sighs.')}return}
+ await say(flags.ending==='settlers'?'Nell: Water from the Still tastes like rain. I forgot what rain tasted like.':'Nell: Stay off the east road after dark.')}
+// ----- BAR
+async function talkMags(){while(true){const r=await dlg('Mags: Welcome to the Rusty Cup. Drink, or business?',[{k:'d',t:'A drink. (5b)'},{k:'w',t:'Any work?',if:P.q.debt===0},{k:'r',t:'About Skint...',if:P.q.debt===2},{k:'bye',t:'Bye.'}]);
+ if(r.k==='d'){if(P.bolts<5){await say('Mags: No bolts, no booze.');continue}P.bolts-=5;tone(400,.1);await say(pick(["Mags: Rad-ale. Glows a little. Sister Cathode over there has been asking about the Still. Watch her.","Mags: Old Tally knows Scorch Fort better than anyone. Used to haul scrap for them. Buy him a drink.","Mags: King Axlegrind keeps a chrome wolf. Meanest thing in the wastes."]))}
+ if(r.k==='w'){await say("Mags: A drifter named Skint drank a month on credit. 60 bolts. He's hiding in the south-east Ashfields.");await say('Mags: Bring me my bolts and you get a cut. How you get them is your business.');P.q.debt=1;await say('[New quest: Bad Debt]')}
+ if(r.k==='r'){if(flags.debtPaid){await say('Mags: 60 bolts! Ha! Here is your cut, and something extra.');await bolts(25);await getItem('CAGE',2);flags.debtEnd='Skint paid up.';P.q.debt=3;await rep('settlers',5)}
+  else{const s=await dlg('Mags: Well? Where are my bolts?',[{k:'t',t:'I let him go.'},{k:'l',t:"Lie: he's dead.",st:'WITS',dc:4,id:'mags_lie'}]);
+   if(s.k==='t'){await say("Mags: ...Soft heart. Rare thing out here. Fine. I'll write it off.");flags.debtEnd='You told Mags the truth.';await rep('settlers',2)}
+   else if(s.ok){await say("Mags: Dead? Hmph. Can't squeeze bolts from a corpse. Here, for your trouble.");await bolts(15);flags.debtEnd='You told Mags Skint was dead.'}
+   else{await say("Mags: Dead? He was in here last night, liar. Get out of my sight.");flags.debtEnd='Mags caught your lie.';await rep('settlers',-5)}P.q.debt=3}await say('[Quest complete: Bad Debt]')}
+ if(r.k==='bye')return}}
+async function talkCathode(){if(!flags.metCathode){flags.metCathode=1;await say('Cathode: Peace of the Machine-Saints upon you, traveler. The Iron Choir keeps what the old world built.')}
+ while(true){const r=await dlg('Cathode: What does the dust ask of the Choir?',[{k:'o',t:'What do you want?',if:!flags.choirOffer},{k:'m',t:'Any work?',if:P.q.mast===0},{k:'md',t:'Your mast sings.',if:P.q.mast===1&&!!flags.mastFixed},
+  {k:'l',t:'Read ledger.',st:'WITS',dc:4,id:'cath_l'},{k:'n',t:'Recite Litany.',bg:'choir',if:!flags.choirBonus},{k:'s',t:'Sell her the Core.',if:P.q.main===3&&has('CORE')},{k:'bye',t:'Bye.'}]);
+  if(r.k==='o'){flags.choirOffer=1;await say('Cathode: The Purifier Core. The mayor wastes it on mud-farmers. In the Choir\'s spire, it would serve properly.');await say(`Cathode: Bring the Core to me instead. ${flags.choirBonus?400:300} bolts and three Tesla Traps. Think on it.`)}
+  if(r.k==='m'){await say('Cathode: Our relay mast in the north-east Ashfields has gone silent. Raiders stole the signal coil.');await say('Cathode: Restore it, and the Choir will remember. A coil, or a clever pair of hands, should do.');P.q.mast=1;await say('[New quest: Choir Signal]')}
+  if(r.k==='md'){P.q.mast=2;await say('Cathode: I hear it. The hymn of the relay. You have done the Saints a kindness.');await getItem('TESLA',2);await rep('choir',15);await say('[Quest complete: Choir Signal]')}
+  if(r.k==='l'){if(r.ok){flags.knowRation=1;await say("While she talks, you read her open ledger upside down: 'RUSTWATER WATER RATION - 2 BOLTS PER CUP, PENDING CORE.'");await say('So that is the Choir\'s plan for the water.')}else{await say('She snaps the ledger shut. "Curiosity rusts, child."');await rep('choir',-5)}}
+  if(r.k==='n'){flags.choirBonus=1;await say("You recite: 'Steel endures, the current flows, the Saints remember.' Her eyes narrow, then soften.");await say('Cathode: A lost novice returns to the light? The Choir forgives. For the Core, I would pay 400.');await rep('choir',10)}
+  if(r.k==='s'){if(await yesno('Sell the Purifier Core to the Iron Choir? Rustwater will not forget.'))await endingChoir();return}
+  if(r.k==='bye')return}}
+async function talkTally(){while(true){const r=await dlg('Old Tally: *hic* Whaddaya want?',[{k:'d',t:'Buy him a drink. (5b)',if:!flags.knowGap},{k:'c',t:'Chat him up.',st:'CHARM',dc:2,id:'tally_c',if:!flags.knowGap},{k:'r',t:'Heard anything?'},{k:'bye',t:'Bye.'}]);
+ if(r.k==='d'){if(P.bolts<5){await say('Old Tally: No drink, no talk.');continue}P.bolts-=5;await tallyGap()}
+ if(r.k==='c'){if(r.ok)await tallyGap();else await say('Old Tally: Whatever yer sellin\', I ain\'t buyin\'. *hic*')}
+ if(r.k==='r')await say(pick(["Old Tally: Chrome wolves in the ash around Scorch Fort. Rare as rain. Pretty as sin.","Old Tally: Axlegrind ain't so tough. Talk to him smart and he folds. Talk to him dumb and he grinds.","Old Tally: Never trust a Choir smile. Never."]));
+ if(r.k==='bye')return}}
+async function tallyGap(){flags.knowGap=1;await say("Old Tally: Scorch Fort? Heh. I built half that wall. East side, middle. Sheeting's held on with spit. Kick it and walk in.");await say('[You learned about a weak spot in Scorch Fort\'s east wall.]')}
+async function talkMo(){while(true){const r=await dlg(`Dice Mo: Knucklebones. Highest two dice wins.${flags.moFair?' Fair and square, now.':''}`,[{k:'10',t:'Bet 10 bolts.'},{k:'25',t:'Bet 25 bolts.'},{k:'w',t:'Watch hands.',st:'WITS',dc:4,id:'mo_w'},{k:'bye',t:'Bye.'}]);
+ if(r.k==='bye')return;if(r.k==='w'){if(r.ok){flags.moFair=1;await say("You catch it: his dice are weighted! Mo turns pale. \"Shh! Here, 40 bolts. And I'll play fair.\"");await bolts(40)}else await say("His hands are a blur. You see nothing.");continue}
+ const bet=+r.k;if(P.bolts<bet){await say("Dice Mo: Can't cover that bet.");continue}
+ const a=await rollDie(),b=await rollDie();const you=a+b;let mo=2+rand(6)+rand(6)+(flags.moFair?0:1);mo=Math.min(12,mo);
+ await say(`You rolled ${a}+${b} = ${you}. Mo rolls... ${mo}.`);if(you>mo||(you===mo&&flags.moFair&&Math.random()<.5)){SFX.pass();P.bolts+=bet;await say(`You win ${bet} bolts!`)}else{SFX.fail();P.bolts-=bet;await say(`Mo scoops up your ${bet} bolts. "Again?"`)}}}
+// ----- ASHFIELDS
+async function talkDorrie(n){while(true){const r=await dlg('Dorrie: Ho, greenhorn! Scavving the same piles as me?',[{k:'b',t:'Spar with me?',if:!flags.beat_dorrie},{k:'s',t:'Swap tips.',st:'SCAV',dc:3,id:'dor_s'},{k:'bye',t:'Bye.'}]);
+ if(r.k==='b'){await runTrainer(n);return}
+ if(r.k==='s'){if(r.ok){flags.scavTips=1;await say('Dorrie: Ha, you know your junk! Check under car seats and inside fridge doors. Nobody looks there.');await say('[You now find an extra item in every junk pile.]')}else await say('Dorrie: Nah, those are MY secrets.')}
+ if(r.k==='bye'){await say('Dorrie: Junk piles only get picked once. Choose well!');return}}}
+async function talkSkint(n){if(P.q.debt!==1){await say(P.q.debt>=2?"Skint: We're square. Mostly.":"Skint: Leave me alone. I got nothing worth stealing.");return}
+ while(true){const r=await dlg('Skint: Mags sent you? Aw, rust. I ain\'t got 60 bolts.',[{k:'g',t:'Pay up. Now.',st:'GRIT',dc:4,id:'sk_g'},{k:'c',t:'Be fair.',st:'CHARM',dc:3,id:'sk_c'},{k:'f',t:'Then we fight.'},{k:'s',t:'Keep it. Get lost.'},{k:'l',t:'Later.'}]);
+  if(r.k==='g'){if(r.ok){await say("Skint: Okay! Okay! Here! Don't hurt me!");await skintPays();return}await say('Skint: Ha! You and what army?')}
+  if(r.k==='c'){if(r.ok){await say("Skint: ...Yeah. Mags was good to me. Here. And listen: I hear Scorch Fort's east wall is loose. Old Tally built it badly.");flags.knowGap=1;await skintPays();return}await say("Skint: Reasonable? Reasonable is me keeping my bolts.")}
+  if(r.k==='f'){await say("Skint: Fine! I'm not going quietly!");const team=n.trainer.team.map(([s,l])=>makeMon(s,l));const res=await battle(team,{name:'Skint',lose:'Skint: Uncle! Uncle!',reward:0});
+   if(res==='lose'){await blackout();return}await say("Skint: Take it. Take the bolts.");await skintPays();return}
+  if(r.k==='s'){await say("Skint: Really? You're... thanks. Here, my lucky jar. Never caught a thing with it, but maybe you will.");await getItem('CAGE',1);flags.debtPaid=0;P.q.debt=2;return}
+  if(r.k==='l')return}}
+async function skintPays(){flags.debtPaid=1;P.q.debt=2;SFX.item();await say("You got Skint's 60 bolts. They belong to Mags.")}
+async function talkMast(){if(P.q.mast>=2||flags.mastFixed){await say('The relay mast hums with faint Choir hymns.');return}
+ if(has('COIL')){take('COIL');flags.mastFixed=1;SFX.lvl();await say('You slot the Signal Coil into the transmitter. The mast crackles to life!');return}
+ const r=await dlg('A rusted relay mast. The transmitter coil is fried.',[{k:'w',t:'Rewire it.',st:'WITS',dc:5,id:'mast_w'},{k:'c',t:'Splice in 2 wire.',if:has('WIRE',2)},{k:'l',t:'Leave it.'}]);
+ if(r.k==='w'){if(r.ok){flags.mastFixed=1;SFX.lvl();await say('You bypass the dead coil with a bridge of salvaged leads. The mast sings!')}else await say('ZAP! You yank your hand back. That did not work.')}
+ if(r.k==='c'){take('WIRE',2);flags.mastFixed=1;SFX.lvl();await say('You wind fresh copper around the old core. The mast crackles to life!')}}
+// ----- FORT
+async function talkKnuckles(n){while(true){const r=await dlg("Knuckles: Halt. Scorch Fort. Nobody gets in without the King's say.",[
+ {k:'g',t:'Step aside.',st:'GRIT',dc:4,id:'kn_g'},{k:'c',t:"I'm a dealer.",st:'CHARM',dc:4,id:'kn_c'},{k:'r',t:'Show brand.',bg:'raider'},{k:'b',t:'Bribe him. (50b)',if:P.bolts>=50},
+ {k:'w',t:'Study walls.',st:'WITS',dc:4,id:'kn_w'},{k:'f',t:'Move, or get moved.'},{k:'l',t:'Never mind.'}]);
+ if(r.k==='g'){if(r.ok){await say('Knuckles swallows hard and steps aside.');await openGate();await rep('scorch',-5);return}await say('Knuckles: Cute. Try that again and I break your fingers.')}
+ if(r.k==='c'){if(r.ok){await say('Knuckles: A deal, huh? The King loves deals. Go on.');await openGate();await rep('scorch',5);return}await say("Knuckles: You don't look like a dealer. You look like lunch.")}
+ if(r.k==='r'){await say("You roll up your sleeve. Knuckles stares at the old Scorch brand. 'Old blood. Go on through.'");await openGate();await rep('scorch',10);return}
+ if(r.k==='b'){P.bolts-=50;await say('Knuckles pockets the bolts without a word and kicks the gate lever.');await openGate();return}
+ if(r.k==='w'){if(r.ok){flags.knowGap=1;await say("While he blusters, you notice the east wall: one panel is bowed and barely bolted. A way in.")}else await say('Just walls. Spiky, angry walls.')}
+ if(r.k==='f'){await runTrainer(n);if(flags.beat_knuckles){await openGate();await rep('scorch',-5)}return}
+ if(r.k==='l')return}}
+async function talkGap(){if(flags.fortGap){await say('A gap in the wall, just wide enough to squeeze through.');return}
+ if(flags.knowGap||P.bg==='scav'){await say(P.bg==='scav'&&!flags.knowGap?'[SCAV-RAT] Your junk-diver eye spots it: a panel held on with rusted wire.':'This is the loose panel you heard about.');await say('You pry the sheeting loose. A way into Scorch Fort!');flags.fortGap=1;SFX.door();return}
+ const r=await dlg('A wall of spiked scrap sheeting. One panel looks bowed.',[{k:'w',t:'Inspect it.',st:'WITS',dc:4,id:'gap_w'},{k:'g',t:'Kick it in.',st:'GRIT',dc:5,id:'gap_g'},{k:'l',t:'Leave it.'}]);
+ if((r.k==='w'||r.k==='g')){if(r.ok){flags.fortGap=1;SFX.door();await say(r.k==='w'?'The panel is held on by a single rusted bolt. You twist it free and the sheet swings open.':'WHAM! The panel folds inward. Subtle? No. Effective? Yes.')}else await say(r.k==='w'?'It looks solid enough. Maybe someone knows more.':'You bounce off. Your foot hurts.')}}
+async function axleFight(rite){const team=[['TWINHOG',10],['WIREWYRM',11],['CHROMEFANG',12]].map(([s,l])=>makeMon(s,l));
+ const res=await battle(team,{name:'King Axlegrind',boss:true,lose:rite?'Axlegrind: HA! The Rite is yours! Honest steel!':'Axlegrind: Impossible... my beautiful beasts...',reward:300});
+ if(res==='lose'){await say('Axlegrind: Hah! Drag this one out to the dunes.');await blackout();return}
+ flags.beat_axle=1;await evolveCheck();await say('Axlegrind: Fine. Take your humming rock. I have bigger dreams anyway.');await getItem('CORE');P.q.main=3;
+ if(rite){await rep('scorch',10);flags.axleOffer=1;await say("Axlegrind: That seat by my fire is still yours. Bring the Core back here, and we rule the water together.")}else await rep('scorch',-10)}
+async function talkAxle(){if(P.q.main>=3||flags.beat_axle){
+  if(flags.axleOffer&&has('CORE')&&!flags.ending){const r=await dlg('Axlegrind: Back already? Thinking about my offer?',[{k:'g',t:'Here. The Core.'},{k:'n',t:'Just visiting.'}]);
+   if(r.k==='g'&&await yesno('Hand the Core to the Scorch Gang? Rustwater will die thirsty.'))await endingScorch();return}
+  await say(flags.ending==='scorch'?'Axlegrind: My lieutenant! Go on, ride. The wastes are ours.':'Axlegrind: Get out of my hall before I change my mind.');return}
+ await say('Axlegrind: So the dust coughs up another hero. Let me guess. You want my shiny Core.');
+ await say('Axlegrind: That Core makes clean water. Clean water makes ME king of everything that drinks.');
+ const r=await dlg('Axlegrind: So? Talk fast or fight faster.',[{k:'d',t:'Hand it over.'},{k:'c',t:'Make a deal.',st:'CHARM',dc:5,id:'ax_c'},{k:'r',t:'Remember?',bg:'raider'},
+  {k:'g',t:'Claim Rite.',st:'GRIT',dc:5,id:'ax_g'},{k:'n',t:'Mention the Choir.',if:!!flags.knowRation},{k:'l',t:'Later.'}]);
+ if(r.k==='l'){await say('Axlegrind: Run along, then.');return}
+ if(r.k==='d'){await say('Axlegrind: HA! Take it off my corpse!');await axleFight(false);return}
+ if(r.k==='c'){if(r.ok){await say('You lay it out: a Core without pumps, filters, and a town to run them is just a warm rock. And the Choir will come for it.');
+   await say("Axlegrind: ...Hrm. Clever little sand-rat. Take it. But remember who let you walk out of here.");await getItem('CORE');P.q.main=3;flags.beat_axle=1;flags.axleOffer=1;await rep('scorch',15);
+   await say("Axlegrind: And if you ever want real power... bring it back. There's a seat by my fire.");return}
+  await say('Axlegrind: Nice try. My turn to talk. With teeth!');await axleFight(false);return}
+ if(r.k==='r'){await say("Axlegrind: Well, well. The one that got away. Still got grit? Beat me in the Rite of Rust and the Core is yours.");await axleFight(true);return}
+ if(r.k==='g'){if(r.ok){await say('Axlegrind: The Rite? HA! Finally, someone with a spine. Honest steel, then!');await axleFight(true)}else{await say("Axlegrind: The Rite is for warriors, not snacks. But I'll eat you anyway!");await axleFight(false)}return}
+ if(r.k==='n'){await say("You tell him about the Choir's ledger: they plan to ration Rustwater's water, two bolts a cup. And they'll come for the Core next.");
+  await say("Axlegrind: Those spire-crows? ...So the Core makes me a target. Fine. Beat me fair and it's yours. I'd rather lose it to a fighter than to a choir.");await axleFight(true)}}
+
+// ===== MAIN: title, character creation, loop =====
+MAPS.town.npcs.push({id:'pellIntro',name:'Old Pell',x:6,y:8,dir:0,look:L.pell,cond:()=>!flags.introDone,talk:async()=>say("Old Pell: Go on, then!")});
+MAPS.town.npcs.find(n=>n.id==='pip').x=12;
+const DUST=[...Array(28)].map(()=>({x:Math.random()*160,y:Math.random()*144,s:.2+Math.random()*.7}));
+function drawTitle(){fill(1,0,0,160,144);plat(124,62,15,15,2);
+ for(let x=0;x<160;x++){const a=Math.round(66+Math.sin(x/21)*4+Math.sin(x/7)*1.5);fill(2,x,a,1,144-a)}
+ [[6,52,10,14],[18,46,8,20],[28,56,12,10],[140,50,9,16],[150,57,10,9]].forEach(([x,y,w,h])=>{fill(3,x,y,w,h);fill(1,x+2,y+3,2,2)});
+ for(let x=0;x<160;x++){const b=Math.round(84+Math.sin(x/17+2)*3+Math.sin(x/5)*1);fill(3,x,b,1,144-b)}fill(4,0,100,160,44);
+ text('DUSTBOUND',27,13,3,2);text('DUSTBOUND',26,12,4,2);text('Mutant Tamers of the Ash',8,32,4);
+ const bob=k=>Math.round(Math.sin(FC/12+k)*1.5);ctx.drawImage(MSPR.RUSTLING.f,60,56+bob(1));ctx.drawImage(MSPR.GLOWPUP.f,12,54+bob(0));ctx.drawImage(MSPR.SLUDGELING.f,108,54+bob(2));
+ for(const d of DUST){d.x+=d.s;d.y+=Math.sin(FC/30+d.x)*.1;if(d.x>160){d.x=0;d.y=Math.random()*144}fill(d.y>100?2:3,d.x,d.y,1,1)}
+ if(!modals.length||modals[0].press)text('v1.0  M=mute',86,134,3)}
+function nameEntry(def,title){const G=['ABCDEFGHI','JKLMNOPQR','STUVWXYZ-','abcdefghi','jklmnopqr','stuvwxyz.'];
+ return new Promise(res=>{const m={kind:'name',name:'',cx:0,cy:0,
+  finish(){textHook=null;SFX.ok();this.done(this.name.trim()||def)},
+  update(){if(prs.up){this.cy=(this.cy+6)%7;SFX.sel()}if(prs.down){this.cy=(this.cy+1)%7;SFX.sel()}if(prs.left){this.cx=(this.cx+8)%9;SFX.sel()}if(prs.right){this.cx=(this.cx+1)%9;SFX.sel()}
+   if(prs.a){if(this.cy===6){if(this.cx<4){this.name=this.name.slice(0,-1);SFX.sel()}else{this.finish();return}}else if(this.name.length<8){this.name+=G[this.cy][this.cx];SFX.sel()}}
+   if(prs.b)this.name=this.name.slice(0,-1);if(prs.start)this.finish()},
+  draw(){fill(1,0,0,160,144);box(0,0,160,30);text(title,8,6);text((this.name||'')+((FC>>4)%2?'_':' '),8,17);text('Default: '+def,154-('Default: '+def).length*6,17,3);
+   box(0,30,160,114);for(let r=0;r<6;r++)for(let c=0;c<9;c++){const x=12+c*16,y=38+r*13;text(G[r][c],x,y);if(r===this.cy&&c===this.cx)text('\x01',x-7,y)}
+   text('DEL',20,118);text('END',104,118);if(this.cy===6)text('\x01',this.cx<4?12:96,118);text('Type, or use the grid',8,132,3)}};
+  textHook=e=>{if(e.key==='Enter'){m.finish();return true}if(e.key==='Backspace'){m.name=m.name.slice(0,-1);return true}
+   if(e.key.length===1&&/[A-Za-z0-9 .\-!?']/.test(e.key)){if(m.name.length<8){m.name+=e.key;SFX.sel()}return true}return false};
+  pushModal(m).then(res)})}
+function statAlloc(bg){const s={GRIT:1,WITS:1,CHARM:1,SCAV:1,AIM:1};
+ return pushModal({kind:'stats',i:0,pts:8,update(){if(prs.up){this.i=(this.i+5)%6;SFX.sel()}if(prs.down){this.i=(this.i+1)%6;SFX.sel()}
+  if(this.i<5){const k=STATS[this.i];if(prs.left&&s[k]>1){s[k]--;this.pts++;SFX.sel()}if((prs.right||prs.a)&&this.pts>0&&s[k]<5){s[k]++;this.pts--;SFX.sel()}}
+  else if(prs.a){if(this.pts===0){SFX.ok();this.done(s)}else SFX.no()}},
+  draw(){fill(1,0,0,160,144);box(0,0,160,96);text('STATS',8,6);text('Points: '+this.pts,152-('Points: '+this.pts).length*6,6);fill(4,4,15,152,1);
+   STATS.forEach((k,j)=>{const y=19+j*12;text(k,16,y);const v=s[k]+(bg.st===k?1:0);for(let q=0;q<6;q++){if(q<v)fill(q>=s[k]?2:4,64+q*9,y,7,7);else{fill(4,64+q*9,y,7,7);fill(1,65+q*9,y+1,5,5)}}text(String(v),124,y);if(bg.st===k)text('+1',136,y,3);if(j===this.i)text('\x01',7,y)});
+   text('DONE',16,81,this.pts?2:4);if(this.i===5)text('\x01',7,81);
+   box(0,96,160,48);wrap(this.i<5?STATDESC[STATS[this.i]]:(this.pts?'Spend all your points first. Left/Right to adjust.':'Ready to face the wastes.')).slice(0,3).forEach((l,j)=>text(l,8,104+j*12))}})}
+function starterPick(){const S=['GLOWPUP','RUSTLING','SLUDGELING'];
+ return pushModal({kind:'starter',i:0,update(){if(prs.left){this.i=(this.i+2)%3;SFX.sel()}if(prs.right){this.i=(this.i+1)%3;SFX.sel()}if(prs.a){SFX.ok();this.done(this.i)}},
+  draw(){fill(1,0,0,160,144);textC('Pick your mutant partner',80,6);S.forEach((k,j)=>{const x=4+j*52;if(j===this.i){box(x,18,48,72)}const bob=j===this.i?Math.round(Math.sin(FC/6)*2):0;ctx.drawImage(MSPR[k].f,x+4,24+bob);textC(SPECIES[k].t,x+24,72,j===this.i?4:3)});
+   const sp=SPECIES[S[this.i]];box(0,96,160,48);text(sp.n.toUpperCase(),8,102);wrap(sp.d).slice(0,2).forEach((l,j)=>text(l,8,114+j*12))}})}
+async function titleFlow(){scene='title';playSong('title');fadeLv=0;
+ await pushModal({press:1,update(){if(prs.a||prs.start){SFX.ok();this.done()}},draw(){if((FC>>5)%2)textC('PRESS START',80,112,1)}});
+ while(true){const opts=hasSave()?['CONTINUE','NEW GAME']:['NEW GAME'];const c=await choose(opts,{x:40,y:100,w:80});
+  if(opts[c]==='CONTINUE'){await fadeOut();if(loadGame()){scene='ow';await fadeIn();return}await fadeIn();await say('The save-slate is cracked. Starting fresh.')}else{await newGame();return}}}
+async function newGame(){P=newP();flags={};await fadeOut();scene='blank';playSong(null);await fadeIn();
+ await say('The bombs fell. The seas boiled. And the beasts of the world... changed.');
+ await say('Now the Ashlands belong to raiders, cults, and the mutants that roam the dust.');
+ await say('And you are a drifter, walking toward the last clean well in the wastes.');
+ P.name=await nameEntry('Kestrel','WHAT IS YOUR NAME?');
+ const b=await listMenu({title:'YOUR BACKGROUND',items:BGS.map(x=>({l:x.n,r:'+1 '+x.st,d:x.d})),cancel:false});P.bg=BGS[b].id;
+ const st=await statAlloc(BGS[b]);P.stats=Object.assign({},st);P.stats[BGS[b].st]++;
+ await say(`${P.name} the ${BGS[b].n}. The dust will remember that name... or bury it.`);
+ await fadeOut();loadMap('town',6,9,1);banner.t=0;scene='ow';busy=true;await fadeIn();
+ await say("Old Pell: Whoa there! You walked in off the Ashfields on foot? Without a mon? You're brave or sun-cooked.");
+ await say("Old Pell: Name's Pell. I wrangle mutants. Nobody survives out there without a beast at their side.");
+ await say("Old Pell: I've got three pups that need a partner. Pick one.");
+ let k;while(true){const i=await starterPick();k=['GLOWPUP','RUSTLING','SLUDGELING'][i];if(await yesno(`${SPECIES[k].n}, the ${SPECIES[k].t} mutant. Take this one?`))break}
+ const m=makeMon(k,5,true);P.party.push(m);P.caught[k]=1;P.seen[k]=1;SFX.catch();await say(`You received ${SPECIES[k].n}!`);
+ if(await yesno(`Give ${SPECIES[k].n} a nickname?`)){const n=await nameEntry(SPECIES[k].n,'NICKNAME?');if(n!==SPECIES[k].n)m.nick=n}
+ await say('Old Pell: Take these Snare Jars, too. Wear a wild mon down, then throw. You can craft more from Scrap and Wire.');await getItem('JAR',5);
+ await say("Old Pell: Now go see Mayor Ottilie by the Still, just north of here. She's got trouble, and you look like a trouble-solver.");
+ await say('(Press SHIFT, or ENTER with nothing in front of you, to open your menu.)');
+ flags.introDone=1;busy=false;banner={t:110,name:curMap.name};saveGame()}
+function draw(){ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;
+ if(scene==='title')drawTitle();else if(scene==='ow'&&curMap)drawOW();else if(scene==='battle'&&B)drawBattle();else fill(4,0,0,160,144);
+ for(const m of modals)m.draw&&m.draw();
+ if(flashOn){ctx.globalAlpha=.75;fill(4,0,0,160,144);ctx.globalAlpha=1}
+ if(wipe){fill(4,0,0,160,wipe*8);fill(4,0,144-wipe*8,160,wipe*8)}
+ if(fadeLv){ctx.globalAlpha=fadeLv/4;fill(4,0,0,160,144);ctx.globalAlpha=1}}
+function update(){FC++;tickTimers();if(modals.length)modals[modals.length-1].update();else if(scene==='ow'&&!busy)owUpdate();tickActors();for(const k in prs)prs[k]=false}
+let lastT=0,accT=0;
+let errCount=0;
+function loop(t){requestAnimationFrame(loop);if(!lastT)lastT=t;accT+=Math.min(100,t-lastT);lastT=t;try{draw();let n=0;while(accT>=1000/60&&n<3){accT-=1000/60;update();n++}}catch(e){if(errCount++<5)console.error('frame error',e&&e.stack||e);for(const k in prs)prs[k]=false}}
+function fit(){const vw=innerWidth,vh=innerHeight;const s=Math.max(1,Math.floor(Math.min((vw-48)/160,(vh-250)/144)));cv.style.width=160*s+'px';cv.style.height=144*s+'px';document.getElementById('gb').style.width=(160*s+56)+'px'}
+window.DB={wildBattle,saveGame,get P(){return P},get scene(){return scene},get map(){return curMap&&curMap.id},pl,get flags(){return flags},modals,get busy(){return busy},get B(){return B},MAPS,makeMon,loadMap,battle,runScript};
+buildFont();buildTiles();buildObjs();buildMons();bindTouch();fit();addEventListener('resize',fit);requestAnimationFrame(loop);titleFlow();
+
+</script>
+<script>
+// PWA: service worker registration + mobile touch niceties (no game logic)
+if('serviceWorker' in navigator&&location.protocol!=='file:'){addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(e=>console.warn('Service worker registration failed:',e))})}
+document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('#gb'))e.preventDefault()});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+</body></html>
